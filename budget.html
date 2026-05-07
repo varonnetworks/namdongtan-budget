@@ -137,10 +137,19 @@
   .store-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .store-chip { padding: 4px 10px; border: 1px solid var(--border2); border-radius: 99px; font-size: 11px; cursor: pointer; background: var(--surface); color: var(--text2); transition: all 0.15s; }
   .store-chip:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .exp-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 10px; overflow: hidden; }
+  .exp-card-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .exp-card-date { font-size: 11px; color: var(--text3); font-weight: 600; white-space: nowrap; }
+  .exp-card-store { font-size: 11px; color: var(--text2); }
+  .exp-card-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .exp-card-row:last-child { border-bottom: none; }
+  .exp-card-item { flex: 1; font-size: 13px; font-weight: 500; }
+  .exp-card-cat { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+  .exp-card-amount { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .exp-card-footer { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: var(--surface2); border-top: 1px solid var(--border); font-size: 12px; }
+  .exp-card-total { font-weight: 700; color: var(--red); }
   .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 400; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .loading-overlay .spinner { width: 28px; height: 28px; border-width: 3px; }
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
   @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .metric-grid { grid-template-columns: repeat(2,1fr); } .two-col { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -148,7 +157,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점</h1>
+      <h1>정상어학원<br>남동탄분원</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -259,7 +268,7 @@
         </div>
       </div>
 
-      <!-- 좌우 테이블 -->
+      <!-- 좌우 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
         <!-- 지출 -->
         <div>
@@ -270,10 +279,7 @@
               <input type="text" class="form-input" placeholder="검색..." style="width:110px;padding:5px 8px;font-size:12px;" id="exp-search" oninput="renderLedger()">
             </div>
           </div>
-          <div class="table-wrap" id="exp-table-wrap">
-            <table><thead><tr><th>날짜</th><th>영수증</th><th>품목</th><th>구매처</th><th>카테고리</th><th>금액</th><th></th></tr></thead>
-            <tbody id="expense-tbody"></tbody></table>
-          </div>
+          <div id="expense-cards"></div>
           <div id="expense-empty" class="empty-state" style="display:none;">지출 내역이 없습니다.</div>
         </div>
 
@@ -1124,8 +1130,8 @@ function parsePdfText(text) {
     if (m) { result.total = parseInt(m[1].replace(/,/g, '')); break; }
   }
 
-  // 할인금액 추출
-  const discountMatch = text.match(/할인\s*금액\s*[\s\S]*?(\d[\d,]+)/);
+  // 할인금액 추출 - 0원이면 무시
+  const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,20}?(\d[\d,]+)/);
   if (discountMatch) {
     const discount = parseInt(discountMatch[1].replace(/,/g, ''));
     if (discount > 0) result.discount = discount;
