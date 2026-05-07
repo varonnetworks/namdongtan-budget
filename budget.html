@@ -108,10 +108,16 @@
   .supply-bar-fill { height: 100%; border-radius: 99px; }
   .days-ok { color: var(--green); } .days-warn { color: var(--amber); } .days-danger { color: var(--red); }
   .fill-ok { background: var(--green); } .fill-warn { background: var(--amber); } .fill-danger { background: var(--red); }
-  .month-nav { display: flex; align-items: center; gap: 10px; }
-  .month-nav button { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 5px 12px; cursor: pointer; color: var(--text2); font-family: inherit; font-size: 13px; transition: all 0.15s; }
+  .month-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .month-nav button { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; color: var(--text2); font-family: inherit; font-size: 13px; transition: all 0.15s; }
   .month-nav button:hover { background: var(--surface2); }
-  .month-display { font-size: 15px; font-weight: 700; min-width: 80px; text-align: center; }
+  .month-display { font-size: 15px; font-weight: 700; min-width: 100px; text-align: center; }
+  .month-select { padding: 5px 8px; border: 1px solid var(--border2); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); cursor: pointer; }
+  .today-btn { padding: 5px 10px; background: var(--accent-bg); color: var(--accent); border: 1px solid #bfdbfe; border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .today-btn:hover { background: #dbeafe; }
+  .edit-inline-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 2px 4px; border-radius: 4px; font-size: 11px; opacity: 0; transition: opacity 0.15s; }
+  tr:hover .edit-inline-btn { opacity: 1; }
+  .edit-inline-btn:hover { background: var(--accent-bg); color: var(--accent); }
   .receipt-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
   .receipt-pdf { width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: var(--red-bg); cursor: pointer; }
   .img-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -142,7 +148,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -175,8 +181,10 @@
         <div><div class="page-title">월별 현황</div><div class="page-sub" id="dash-period"></div></div>
         <div class="month-nav">
           <button onclick="changeMonth(-1)">&#8249;</button>
-          <div class="month-display" id="month-display">-</div>
+          <select class="month-select" id="year-select-dash" onchange="selectYearMonth()"></select>
+          <select class="month-select" id="month-select-dash" onchange="selectYearMonth()"></select>
           <button onclick="changeMonth(1)">&#8250;</button>
+          <button class="today-btn" onclick="goToday()">이번달</button>
         </div>
       </div>
       <div class="metric-grid">
@@ -220,8 +228,10 @@
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="month-nav">
             <button onclick="changeMonth(-1)">&#8249;</button>
-            <div class="month-display" id="ledger-month-display">-</div>
+            <select class="month-select" id="year-select-ledger" onchange="selectYearMonth()"></select>
+            <select class="month-select" id="month-select-ledger" onchange="selectYearMonth()"></select>
             <button onclick="changeMonth(1)">&#8250;</button>
+            <button class="today-btn" onclick="goToday()">이번달</button>
           </div>
           <button class="btn" style="background:var(--red-bg);color:var(--red);border-color:#fecaca;" onclick="openExpenseModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>지출 추가
@@ -282,8 +292,10 @@
         <div><div class="page-title">카테고리 분석</div><div class="page-sub">카테고리별 지출 비중</div></div>
         <div class="month-nav">
           <button onclick="changeMonth(-1)">&#8249;</button>
-          <div class="month-display" id="cat-month-display">-</div>
+          <select class="month-select" id="year-select-cat" onchange="selectYearMonth()"></select>
+          <select class="month-select" id="month-select-cat" onchange="selectYearMonth()"></select>
           <button onclick="changeMonth(1)">&#8250;</button>
+          <button class="today-btn" onclick="goToday()">이번달</button>
         </div>
       </div>
       <div id="cat-analysis"></div>
@@ -506,9 +518,50 @@ function changeMonth(delta) {
 
 function updateMonthDisplays() {
   const label = `${currentYear}년 ${currentMonth}월`;
-  document.getElementById('dash-period').textContent = label;
+  const dp = document.getElementById('dash-period'); if(dp) dp.textContent = label;
   const lp = document.getElementById('ledger-period'); if(lp) lp.textContent = label;
-  ['month-display','ledger-month-display','cat-month-display'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = currentMonth + '월'; });
+
+  // 연도 드롭다운 (2024~현재+1)
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const years = [];
+  for (let y = 2024; y <= thisYear + 1; y++) years.push(y);
+  const yearOpts = years.map(y => `<option value="${y}" ${y===currentYear?'selected':''}>${y}년</option>`).join('');
+  const monthOpts = Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===currentMonth?'selected':''}>${i+1}월</option>`).join('');
+
+  ['dash','ledger','cat'].forEach(prefix => {
+    const ys = document.getElementById(`year-select-${prefix}`);
+    const ms = document.getElementById(`month-select-${prefix}`);
+    if (ys) ys.innerHTML = yearOpts;
+    if (ms) ms.innerHTML = monthOpts;
+  });
+}
+
+function selectYearMonth() {
+  // 어느 드롭다운이든 첫 번째로 값 가져오기
+  const ySel = document.getElementById('year-select-dash') || document.getElementById('year-select-ledger') || document.getElementById('year-select-cat');
+  const mSel = document.getElementById('month-select-dash') || document.getElementById('month-select-ledger') || document.getElementById('month-select-cat');
+
+  // 현재 활성화된 섹션의 드롭다운 값 사용
+  const active = document.querySelector('.section.active')?.id?.replace('section-','');
+  const prefix = active === 'dashboard' ? 'dash' : active === 'ledger' ? 'ledger' : 'cat';
+  const y = document.getElementById(`year-select-${prefix}`)?.value;
+  const m = document.getElementById(`month-select-${prefix}`)?.value;
+  if (y) currentYear = parseInt(y);
+  if (m) currentMonth = parseInt(m);
+  updateMonthDisplays();
+  const renders = { dashboard: renderDashboard, ledger: renderLedger, category: renderCategory };
+  renders[active]?.();
+}
+
+function goToday() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  updateMonthDisplays();
+  const active = document.querySelector('.section.active')?.id?.replace('section-','');
+  const renders = { dashboard: renderDashboard, ledger: renderLedger, category: renderCategory };
+  renders[active]?.();
 }
 
 function getKey() { return `${currentYear}-${String(currentMonth).padStart(2,'0')}`; }
@@ -603,18 +656,21 @@ function renderLedger() {
       rows += `<tr style="background:var(--surface2);">
         <td rowspan="${items.length}" style="white-space:nowrap;color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.date}</td>
         <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;">${renderThumb(first)}</td>
-        <td style="font-weight:500;">${first.item}</td>
+        <td style="font-weight:500;">${first.item} <button class="edit-inline-btn" onclick="editCell(event,'${first.id}','item','${first.item.replace(/'/g,"\\'")}')">✎</button></td>
         <td rowspan="${items.length}" style="color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.store||'—'}</td>
-        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;" onclick="editCategory(event,'${first.group_id}',null,'${first.category}')">
+        <td onclick="editCategory(event,null,'${first.id}','${first.category}')">
           <span style="background:${getCatColor(first.category)}22;color:${getCatColor(first.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${first.category}</span>
         </td>
-        <td style="font-weight:600;color:${Number(first.amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;">${Number(first.amount)<0?'−'+fmt(Math.abs(first.amount)):fmt(first.amount)}</td>
+        <td style="font-weight:600;color:${Number(first.amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;" onclick="editCell(event,'${first.id}','amount',${first.amount})" title="클릭해서 수정">${Number(first.amount)<0?'−'+fmt(Math.abs(first.amount)):fmt(first.amount)}</td>
         <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;"><button class="delete-btn" onclick="deleteGroup('${first.group_id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
       </tr>`;
       for (let i = 1; i < items.length; i++) {
         rows += `<tr>
-          <td style="font-weight:500;${items[i].item==='할인'?'color:var(--green);':''}">${items[i].item}</td>
-          <td style="font-weight:600;color:${Number(items[i].amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;">${Number(items[i].amount)<0?'−'+fmt(Math.abs(items[i].amount)):fmt(items[i].amount)}</td>
+          <td style="font-weight:500;${items[i].item==='할인'?'color:var(--green);':''}">${items[i].item} <button class="edit-inline-btn" onclick="editCell(event,'${items[i].id}','item','${items[i].item.replace(/'/g,"\\'")}')">✎</button></td>
+          <td onclick="editCategory(event,null,'${items[i].id}','${items[i].category}')">
+            <span style="background:${getCatColor(items[i].category)}22;color:${getCatColor(items[i].category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${items[i].category}</span>
+          </td>
+          <td style="font-weight:600;color:${Number(items[i].amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;" onclick="editCell(event,'${items[i].id}','amount',${items[i].amount})" title="클릭해서 수정">${Number(items[i].amount)<0?'−'+fmt(Math.abs(items[i].amount)):fmt(items[i].amount)}</td>
         </tr>`;
       }
       if (items.length > 1) {
@@ -631,12 +687,12 @@ function renderLedger() {
       rows += `<tr>
         <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${e.date}</td>
         <td>${renderThumb(e)}</td>
-        <td style="font-weight:500;">${e.item}</td>
+        <td style="font-weight:500;">${e.item} <button class="edit-inline-btn" onclick="editCell(event,'${e.id}','item','${e.item.replace(/'/g,"\\'")}')">✎</button></td>
         <td style="color:var(--text2);font-size:12px;">${e.store||'—'}</td>
         <td onclick="editCategory(event,null,'${e.id}','${e.category}')">
           <span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${e.category}</span>
         </td>
-        <td style="font-weight:600;color:var(--red);white-space:nowrap;">${fmt(e.amount)}</td>
+        <td style="font-weight:600;color:var(--red);white-space:nowrap;" onclick="editCell(event,'${e.id}','amount',${e.amount})" title="클릭해서 수정">${fmt(e.amount)}</td>
         <td><button class="delete-btn" onclick="deleteExpense('${e.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
       </tr>`;
     });
@@ -672,6 +728,32 @@ function renderThumb(e) {
   if (!e.file_url) return `<div style="width:36px;height:36px;border-radius:5px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--border2);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
   if (e.file_type === 'pdf') return `<div class="receipt-pdf" style="width:36px;height:36px;" onclick="window.open('${e.file_url}','_blank')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
   return `<img class="receipt-thumb" style="width:36px;height:36px;" src="${e.file_url}" alt="영수증" onclick="document.getElementById('viewer-img').src='${e.file_url}';document.getElementById('img-viewer').style.display='flex'">`;
+}
+
+async function editCell(event, expId, field, currentVal) {
+  event.stopPropagation();
+  const td = event.currentTarget.closest('td');
+  const isAmount = field === 'amount';
+  const input = document.createElement('input');
+  input.type = isAmount ? 'number' : 'text';
+  input.value = isAmount ? Math.abs(currentVal) : currentVal;
+  input.style.cssText = `width:100%;font-size:13px;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-family:inherit;`;
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus(); input.select();
+  const save = async () => {
+    let val = input.value.trim();
+    if (!val) { renderLedger(); return; }
+    if (isAmount) val = Number(currentVal) < 0 ? -Math.abs(parseFloat(val)) : parseFloat(val);
+    try {
+      await api('PATCH', 'expenses', { [field]: val }, `?id=eq.${expId}`);
+      const exp = expenses.find(e => e.id === expId);
+      if (exp) exp[field] = val;
+      renderLedger(); renderDashboard();
+    } catch(e) { showToast('수정 실패'); renderLedger(); }
+  };
+  input.onblur = save;
+  input.onkeydown = e => { if(e.key==='Enter') save(); if(e.key==='Escape') renderLedger(); };
 }
 
 async function editCategory(event, groupId, expId, currentCat) {
