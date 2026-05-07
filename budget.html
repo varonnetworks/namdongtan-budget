@@ -726,12 +726,13 @@ async function analyzeReceipt(file, isPdf) {
   document.getElementById('ai-result-area').innerHTML=`<div class="ai-result"><div class="ai-loading"><div class="spinner"></div> AI가 영수증을 분석 중...</div></div>`;
   try {
     const b64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res(ev.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
-    const content = isPdf
-      ? [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:PROMPT}]
-      : [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:PROMPT}];
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content}]})});
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: b64, mimeType: file.type, prompt: PROMPT })
+    });
     const data = await resp.json();
-    const parsed = JSON.parse(data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim());
+    const parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim());
     if (parsed.date) document.getElementById('exp-date').value=parsed.date;
     if (parsed.total) document.getElementById('exp-amount').value=parsed.total;
     if (parsed.category && categories.find(c=>c.name===parsed.category)) document.getElementById('exp-cat').value=parsed.category;
