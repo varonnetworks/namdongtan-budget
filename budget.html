@@ -157,7 +157,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄분원</h1>
+      <h1>정상어학원<br>남동탄점</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -710,20 +710,21 @@ function showIncomeDetail() {
 
 function renderLedger() {
   const key = getKey();
-  // 지출
   const cf = document.getElementById('exp-cat-filter')?.value || '';
   const s = document.getElementById('exp-search')?.value.toLowerCase() || '';
   const filteredExp = expenses.filter(e => e.date?.startsWith(key) && (!cf||e.category===cf) && (!s||e.item?.toLowerCase().includes(s)||e.store?.toLowerCase().includes(s)));
-  const tbody = document.getElementById('expense-tbody');
   const expEmpty = document.getElementById('expense-empty');
-  const wrap = document.getElementById('exp-table-wrap');
-  if (!filteredExp.length) { tbody.innerHTML=''; expEmpty.style.display='block'; wrap.style.display='none'; }
+  const cardsEl = document.getElementById('expense-cards');
+  if (!expEmpty || !cardsEl) return;
+
+  if (!filteredExp.length) { cardsEl.innerHTML=''; expEmpty.style.display='block'; }
   else {
-    expEmpty.style.display='none'; wrap.style.display='block';
+    expEmpty.style.display='none';
 
     // group_id로 묶기
     const groups = {};
     const ungrouped = [];
+    // 날짜 역순 정렬 유지하면서 그룹 순서도 첫 항목 날짜 기준
     filteredExp.forEach(e => {
       if (e.group_id) {
         if (!groups[e.group_id]) groups[e.group_id] = [];
@@ -733,58 +734,61 @@ function renderLedger() {
       }
     });
 
-    let rows = '';
-    // 그룹 처리
-    Object.values(groups).forEach(items => {
-      const first = items[0];
-      const groupTotal = items.reduce((s,i) => s + Number(i.amount), 0);
-      rows += `<tr style="background:var(--surface2);">
-        <td rowspan="${items.length}" style="white-space:nowrap;color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.date}</td>
-        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;">${renderThumb(first)}</td>
-        <td style="font-weight:500;">${first.item} <button class="edit-inline-btn" onclick="editCell(event,'${first.id}','item','${first.item.replace(/'/g,"\\'")}')">✎</button></td>
-        <td rowspan="${items.length}" style="color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.store||'—'}</td>
-        <td onclick="editCategory(event,null,'${first.id}','${first.category}')">
-          <span style="background:${getCatColor(first.category)}22;color:${getCatColor(first.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${first.category}</span>
-        </td>
-        <td style="font-weight:600;color:${Number(first.amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;" onclick="editCell(event,'${first.id}','amount',${first.amount})" title="클릭해서 수정">${Number(first.amount)<0?'−'+fmt(Math.abs(first.amount)):fmt(first.amount)}</td>
-        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;"><button class="delete-btn" onclick="deleteGroup('${first.group_id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
-      </tr>`;
-      for (let i = 1; i < items.length; i++) {
-        rows += `<tr>
-          <td style="font-weight:500;${items[i].item==='할인'?'color:var(--green);':''}">${items[i].item} <button class="edit-inline-btn" onclick="editCell(event,'${items[i].id}','item','${items[i].item.replace(/'/g,"\\'")}')">✎</button></td>
-          <td onclick="editCategory(event,null,'${items[i].id}','${items[i].category}')">
-            <span style="background:${getCatColor(items[i].category)}22;color:${getCatColor(items[i].category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${items[i].category}</span>
-          </td>
-          <td style="font-weight:600;color:${Number(items[i].amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;" onclick="editCell(event,'${items[i].id}','amount',${items[i].amount})" title="클릭해서 수정">${Number(items[i].amount)<0?'−'+fmt(Math.abs(items[i].amount)):fmt(items[i].amount)}</td>
-        </tr>`;
-      }
-      if (items.length > 1) {
-        rows += `<tr style="border-top:2px solid var(--border2);">
-          <td colspan="2" style="text-align:right;font-size:12px;color:var(--text3);font-weight:600;">실결제</td>
-          <td style="font-weight:700;color:var(--red);white-space:nowrap;">${fmt(groupTotal)}</td>
-          <td colspan="4"></td>
-        </tr>`;
-      }
-    });
+    // 모든 항목을 날짜+생성순으로 정렬
+    const allEntries = [
+      ...Object.entries(groups).map(([gid, items]) => ({ type:'group', date: items[0].date, items })),
+      ...ungrouped.map(e => ({ type:'single', date: e.date, e }))
+    ].sort((a,b) => b.date.localeCompare(a.date));
 
-    // 비그룹 처리
-    ungrouped.forEach(e => {
-      rows += `<tr>
-        <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${e.date}</td>
-        <td>${renderThumb(e)}</td>
-        <td style="font-weight:500;">${e.item} <button class="edit-inline-btn" onclick="editCell(event,'${e.id}','item','${e.item.replace(/'/g,"\\'")}')">✎</button></td>
-        <td style="color:var(--text2);font-size:12px;">${e.store||'—'}</td>
-        <td onclick="editCategory(event,null,'${e.id}','${e.category}')">
-          <span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" title="클릭해서 수정">✎ ${e.category}</span>
-        </td>
-        <td style="font-weight:600;color:var(--red);white-space:nowrap;" onclick="editCell(event,'${e.id}','amount',${e.amount})" title="클릭해서 수정">${fmt(e.amount)}</td>
-        <td><button class="delete-btn" onclick="deleteExpense('${e.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
-      </tr>`;
-    });
-
-    tbody.innerHTML = rows;
+    cardsEl.innerHTML = allEntries.map(entry => {
+      if (entry.type === 'group') {
+        const { items } = entry;
+        const first = items[0];
+        const groupTotal = items.reduce((s,i) => s + Number(i.amount), 0);
+        const hasDiscount = items.some(i => Number(i.amount) < 0);
+        return `<div class="exp-card">
+          <div class="exp-card-header">
+            ${renderThumb(first)}
+            <div style="flex:1;">
+              <div class="exp-card-date">${first.date}</div>
+              <div class="exp-card-store">${first.store||'—'}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteGroup('${first.group_id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+          </div>
+          ${items.map(item => `<div class="exp-card-row">
+            <div class="exp-card-item" style="${item.item==='할인'?'color:var(--green);':''}"
+              onclick="editCell(event,'${item.id}','item','${item.item.replace(/'/g,"\\'")}')">
+              ${item.item}
+            </div>
+            <div class="exp-card-cat" style="background:${getCatColor(item.category)}22;color:${getCatColor(item.category)};"
+              onclick="editCategory(event,null,'${item.id}','${item.category}')">${item.category}</div>
+            <div class="exp-card-amount" style="color:${Number(item.amount)<0?'var(--green)':'var(--red)'};"
+              onclick="editCell(event,'${item.id}','amount',${item.amount})">
+              ${Number(item.amount)<0?'−'+fmt(Math.abs(item.amount)):fmt(item.amount)}
+            </div>
+          </div>`).join('')}
+          ${items.length > 1 ? `<div class="exp-card-footer"><span style="color:var(--text3);">실결제</span><span class="exp-card-total">${fmt(groupTotal)}</span></div>` : ''}
+        </div>`;
+      } else {
+        const { e } = entry;
+        return `<div class="exp-card">
+          <div class="exp-card-row" style="padding:10px 12px;">
+            ${renderThumb(e)}
+            <div class="exp-card-item" style="margin-left:4px;" onclick="editCell(event,'${e.id}','item','${e.item.replace(/'/g,"\\'")}')">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${e.date} · ${e.store||'—'}</div>
+              <div>${e.item}</div>
+            </div>
+            <div class="exp-card-cat" style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};"
+              onclick="editCategory(event,null,'${e.id}','${e.category}')">${e.category}</div>
+            <div class="exp-card-amount" style="color:var(--red);" onclick="editCell(event,'${e.id}','amount',${e.amount})">${fmt(e.amount)}</div>
+            <button class="delete-btn" onclick="deleteExpense('${e.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+          </div>
+        </div>`;
+      }
+    }).join('');
   }
-  const totalExp = filteredExp.reduce((s,e)=>s+Number(e.amount),0);
+
+  const totalExp = filteredExp.filter(e=>Number(e.amount)>0).reduce((s,e)=>s+Number(e.amount),0);
   document.getElementById('ledger-exp-total').textContent = fmt(totalExp);
   document.getElementById('ledger-exp-count').textContent = filteredExp.length + '건';
 
@@ -1130,8 +1134,8 @@ function parsePdfText(text) {
     if (m) { result.total = parseInt(m[1].replace(/,/g, '')); break; }
   }
 
-  // 할인금액 추출 - 0원이면 무시
-  const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,20}?(\d[\d,]+)/);
+  // 할인금액 추출 - 명확하게 양수일 때만
+  const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/);
   if (discountMatch) {
     const discount = parseInt(discountMatch[1].replace(/,/g, ''));
     if (discount > 0) result.discount = discount;
