@@ -148,7 +148,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄</h1>
+      <h1>정상어학원<br>남동탄점</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -159,6 +159,9 @@
       <div class="nav-section">기록</div>
       <div class="nav-item" onclick="showSection('ledger',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>내역
+      </div>
+      <div class="nav-item" onclick="showSection('search',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>구매내역 검색
       </div>
       <div class="nav-section">분석</div>
       <div class="nav-item" onclick="showSection('category',this)">
@@ -309,6 +312,42 @@
       <div id="supply-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;"></div>
     </section>
 
+    <!-- SEARCH -->
+    <section class="section" id="section-search">
+      <div class="page-header">
+        <div><div class="page-title">구매내역 검색</div><div class="page-sub">전체 기간 검색</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
+          <div>
+            <div class="form-label" style="margin-bottom:5px;">품목·구매처</div>
+            <input type="text" class="form-input" id="srch-keyword" placeholder="검색어..." oninput="renderSearch()">
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:5px;">카테고리</div>
+            <select class="form-input" id="srch-cat" onchange="renderSearch()"><option value="">전체</option></select>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;">
+              <div class="form-label" style="margin-bottom:5px;">시작일</div>
+              <input type="date" class="form-input" id="srch-from" onchange="renderSearch()">
+            </div>
+            <div style="flex:1;">
+              <div class="form-label" style="margin-bottom:5px;">종료일</div>
+              <input type="date" class="form-input" id="srch-to" onchange="renderSearch()">
+            </div>
+          </div>
+          <button class="btn" onclick="clearSearch()">초기화</button>
+        </div>
+      </div>
+      <div id="srch-summary" style="margin-bottom:12px;font-size:13px;color:var(--text2);"></div>
+      <div class="table-wrap" id="srch-table-wrap">
+        <table><thead><tr><th>날짜</th><th>영수증</th><th>품목</th><th>구매처</th><th>카테고리</th><th>금액</th></tr></thead>
+        <tbody id="srch-tbody"></tbody></table>
+      </div>
+      <div id="srch-empty" class="empty-state" style="display:none;">검색 결과가 없습니다.</div>
+    </section>
+
     <!-- SETTINGS -->
     <section class="section" id="section-settings">
       <div class="page-header">
@@ -317,9 +356,43 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>카테고리 추가
         </button>
       </div>
-      <div class="card" style="max-width:480px;"><div id="cat-list"></div></div>
+      <div class="card" style="max-width:480px;margin-bottom:24px;"><div id="cat-list"></div></div>
+
+      <div class="page-header" style="margin-top:8px;">
+        <div><div class="page-title" style="font-size:16px;">소모품 주기 항목</div><div class="page-sub">추적할 소모품 및 인식 키워드 관리</div></div>
+        <button class="btn btn-primary" onclick="openAddSupplyModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>항목 추가
+        </button>
+      </div>
+      <div class="card" style="max-width:480px;"><div id="supply-settings-list"></div></div>
     </section>
   </main>
+</div>
+
+<!-- SUPPLY SETTINGS MODAL -->
+<div class="modal-overlay" id="supply-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="supply-modal-title">소모품 항목 추가</div>
+      <button class="close-btn" onclick="document.getElementById('supply-modal').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="supply-edit-idx">
+      <div class="form-group">
+        <label class="form-label">항목 이름</label>
+        <input type="text" class="form-input" id="supply-label-input" placeholder="예: A4용지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">인식 키워드 (쉼표로 구분)</label>
+        <input type="text" class="form-input" id="supply-keywords-input" placeholder="예: A4, a4, 복사용지, A4용지">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">품목명에 이 키워드 중 하나라도 포함되면 주기 계산에 반영됩니다.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('supply-modal').style.display='none'">취소</button>
+      <button class="btn btn-primary" onclick="saveSupplyItem()">저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- EXPENSE MODAL -->
@@ -436,7 +509,13 @@
 const SUPABASE_URL = 'https://ktizqdrhndefvoeltjko.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0aXpxZHJobmRlZnZvZWx0amtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTcxOTcsImV4cCI6MjA5MzY3MzE5N30.p3v9VZSgTr_ngL-QN8L_7hoORk1auTqMk8l6NWuE0Yk';
 const BUCKET = 'receipts';
-const SUPPLY_ITEMS = ['A4용지', 'B5용지', '점보롤', '정수기컵'];
+const DEFAULT_SUPPLY_ITEMS = [
+  { label: 'A4용지', keywords: ['A4', 'a4', '복사용지', 'A4용지'] },
+  { label: 'B5용지', keywords: ['B5', 'b5', 'B5용지', 'B5 용지'] },
+  { label: '점보롤', keywords: ['점보롤', '점보 롤'] },
+  { label: '정수기컵', keywords: ['정수기컵', '정수기 컵', '종이컵'] },
+];
+let SUPPLY_ITEMS = JSON.parse(localStorage.getItem('jls_supply_items') || 'null') || DEFAULT_SUPPLY_ITEMS;
 const COMMON_STORES = ['다이소', '쿠팡', '이마트', '편의점', '문구점', '오피스디포', '온라인 주문'];
 
 let currentYear, currentMonth;
@@ -504,7 +583,7 @@ function showSection(id, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('section-' + id).classList.add('active');
   if (el) el.classList.add('active');
-  ({ dashboard: renderDashboard, ledger: renderLedger, category: renderCategory, supply: renderSupply, settings: renderSettings })[id]?.();
+  ({ dashboard: renderDashboard, ledger: renderLedger, search: renderSearch, category: renderCategory, supply: renderSupply, settings: renderSettings })[id]?.();
 }
 
 function changeMonth(delta) {
@@ -827,9 +906,9 @@ function renderCategory() {
 }
 
 function renderSupply() {
-  document.getElementById('supply-cards').innerHTML = SUPPLY_ITEMS.map(item => {
-    const matches = expenses.filter(e=>e.item?.includes(item)).sort((a,b)=>a.date.localeCompare(b.date));
-    if (matches.length < 2) return `<div class="supply-card"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">${item}</div><div style="font-size:12px;color:var(--text3);">${matches.length}회 구매 기록<br>주기 계산은 2건 이상 필요<br>${matches.length?'마지막: '+matches[matches.length-1].date:'기록 없음'}</div></div>`;
+  document.getElementById('supply-cards').innerHTML = SUPPLY_ITEMS.map(({ label, keywords }) => {
+    const matches = expenses.filter(e => keywords.some(k => e.item?.includes(k))).sort((a,b) => a.date.localeCompare(b.date));
+    if (matches.length < 2) return `<div class="supply-card"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">${label}</div><div style="font-size:12px;color:var(--text3);">${matches.length}회 구매 기록<br>주기 계산은 2건 이상 필요<br>${matches.length?'마지막: '+matches[matches.length-1].date:'기록 없음'}</div></div>`;
     const gaps = [];
     for (let i=1;i<matches.length;i++) gaps.push((new Date(matches[i].date)-new Date(matches[i-1].date))/864e5);
     const avg = Math.round(gaps.reduce((s,g)=>s+g,0)/gaps.length);
@@ -839,7 +918,7 @@ function renderSupply() {
     const pct = Math.min(100, Math.round(since/avg*100));
     const cls = left > 14 ? 'ok' : left > 7 ? 'warn' : 'danger';
     return `<div class="supply-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;">${item}</div><div style="font-size:11px;color:var(--text3);">${matches.length}회</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;">${label}</div><div style="font-size:11px;color:var(--text3);">${matches.length}회</div></div>
       <div style="font-size:26px;font-weight:700;" class="days-${cls}">${Math.max(0,left)}<span style="font-size:13px;font-weight:400;color:var(--text3);"> 일</span></div>
       <div class="supply-bar-track"><div class="supply-bar-fill fill-${cls}" style="width:${pct}%;"></div></div>
       <div style="font-size:11px;color:var(--text3);">${left > 0 ? `약 ${left}일 후 소진 예상` : `${Math.abs(left)}일 경과 — 구매 필요!`}</div>
@@ -856,6 +935,94 @@ function renderSettings() {
       <button class="btn" style="padding:4px 10px;font-size:12px;" onclick="openEditCatModal('${c.id}','${c.name}','${c.color}')">수정</button>
       <button class="delete-btn" onclick="deleteCat('${c.id}','${c.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
     </div>`).join('');
+
+  document.getElementById('supply-settings-list').innerHTML = SUPPLY_ITEMS.map((s, idx) => `
+    <div class="cat-list-item">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${s.label}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.keywords.join(', ')}</div>
+      </div>
+      <button class="btn" style="padding:4px 10px;font-size:12px;" onclick="openEditSupplyModal(${idx})">수정</button>
+      <button class="delete-btn" onclick="deleteSupplyItem(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+    </div>`).join('');
+}
+
+function openAddSupplyModal() {
+  document.getElementById('supply-edit-idx').value = '';
+  document.getElementById('supply-label-input').value = '';
+  document.getElementById('supply-keywords-input').value = '';
+  document.getElementById('supply-modal-title').textContent = '소모품 항목 추가';
+  document.getElementById('supply-modal').style.display = 'flex';
+}
+function openEditSupplyModal(idx) {
+  const s = SUPPLY_ITEMS[idx];
+  document.getElementById('supply-edit-idx').value = idx;
+  document.getElementById('supply-label-input').value = s.label;
+  document.getElementById('supply-keywords-input').value = s.keywords.join(', ');
+  document.getElementById('supply-modal-title').textContent = '소모품 항목 수정';
+  document.getElementById('supply-modal').style.display = 'flex';
+}
+function saveSupplyItem() {
+  const idx = document.getElementById('supply-edit-idx').value;
+  const label = document.getElementById('supply-label-input').value.trim();
+  const keywords = document.getElementById('supply-keywords-input').value.split(',').map(k => k.trim()).filter(Boolean);
+  if (!label || !keywords.length) { showToast('이름과 키워드를 입력해주세요.'); return; }
+  if (idx !== '') { SUPPLY_ITEMS[parseInt(idx)] = { label, keywords }; }
+  else { SUPPLY_ITEMS.push({ label, keywords }); }
+  localStorage.setItem('jls_supply_items', JSON.stringify(SUPPLY_ITEMS));
+  document.getElementById('supply-modal').style.display = 'none';
+  renderSettings(); renderSupply();
+  showToast(idx !== '' ? '수정되었습니다.' : '추가되었습니다.');
+}
+function deleteSupplyItem(idx) {
+  if (!confirm(`"${SUPPLY_ITEMS[idx].label}" 항목을 삭제하시겠습니까?`)) return;
+  SUPPLY_ITEMS.splice(idx, 1);
+  localStorage.setItem('jls_supply_items', JSON.stringify(SUPPLY_ITEMS));
+  renderSettings(); renderSupply();
+  showToast('삭제되었습니다.');
+}
+
+function renderSearch() {
+  const keyword = document.getElementById('srch-keyword')?.value.toLowerCase() || '';
+  const cat = document.getElementById('srch-cat')?.value || '';
+  const from = document.getElementById('srch-from')?.value || '';
+  const to = document.getElementById('srch-to')?.value || '';
+
+  // 카테고리 필터 populate
+  const srchCat = document.getElementById('srch-cat');
+  if (srchCat && srchCat.options.length <= 1) {
+    srchCat.innerHTML = '<option value="">전체</option>' + categories.map(c => `<option>${c.name}</option>`).join('');
+  }
+
+  let filtered = expenses.filter(e => {
+    if (keyword && !e.item?.toLowerCase().includes(keyword) && !e.store?.toLowerCase().includes(keyword)) return false;
+    if (cat && e.category !== cat) return false;
+    if (from && e.date < from) return false;
+    if (to && e.date > to) return false;
+    return true;
+  });
+
+  const total = filtered.reduce((s,e) => s + Math.max(0, Number(e.amount)), 0);
+  document.getElementById('srch-summary').textContent = `${filtered.length}건 · 합계 ${fmt(total)}`;
+
+  const empty = document.getElementById('srch-empty');
+  const wrap = document.getElementById('srch-table-wrap');
+  if (!filtered.length) { empty.style.display='block'; wrap.style.display='none'; return; }
+  empty.style.display='none'; wrap.style.display='block';
+  document.getElementById('srch-tbody').innerHTML = filtered.map(e => `<tr>
+    <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${e.date}</td>
+    <td>${renderThumb(e)}</td>
+    <td style="font-weight:500;">${e.item}</td>
+    <td style="color:var(--text2);font-size:12px;">${e.store||'—'}</td>
+    <td><span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">${e.category}</span></td>
+    <td style="font-weight:600;color:${Number(e.amount)<0?'var(--green)':'var(--red)'};white-space:nowrap;">${Number(e.amount)<0?'−'+fmt(Math.abs(e.amount)):fmt(e.amount)}</td>
+  </tr>`).join('');
+}
+
+function clearSearch() {
+  ['srch-keyword','srch-from','srch-to'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('srch-cat').value = '';
+  renderSearch();
 }
 
 function openAddCatModal() {
@@ -927,9 +1094,16 @@ async function extractPdfText(file) {
 function parsePdfText(text) {
   const result = { items: [], total: null, date: null, store: null, category: '기타', summary: '', discount: null };
 
-  // 날짜 추출
-  const dateMatch = text.match(/(\d{4})[.\s/-](\d{2})[.\s/-](\d{2})/);
-  if (dateMatch) result.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+  // 날짜 추출 - 다양한 형식 지원
+  const datePatterns = [
+    /(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/,  // 2026.04.27, 2026-04-27
+    /(\d{4})\s+(\d{2})\s+(\d{2})/,                            // 2026 04 27 (공백)
+    /(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/,                  // 2026년 4월 27일
+  ];
+  for (const pat of datePatterns) {
+    const m = text.match(pat);
+    if (m) { result.date = `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`; break; }
+  }
 
   // 구매처 추출
   if (text.includes('쿠팡')) result.store = '쿠팡';
