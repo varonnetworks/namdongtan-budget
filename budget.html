@@ -465,7 +465,6 @@ async function init() {
   document.getElementById('exp-date').value = now.toISOString().split('T')[0];
   document.getElementById('inc-date').value = now.toISOString().split('T')[0];
   try {
-    await ensureBucket();
     [categories, expenses, incomes] = await Promise.all([
       api('GET', 'categories', null, '?order=name'),
       api('GET', 'expenses', null, '?order=date.desc'),
@@ -476,18 +475,6 @@ async function init() {
   showLoading(false);
   updateMonthDisplays();
   renderDashboard();
-}
-
-async function ensureBucket() {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const list = await res.json();
-  if (!Array.isArray(list) || !list.find(b => b.name === BUCKET)) {
-    await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true })
-    });
-  }
 }
 
 function populateCategorySelects() {
