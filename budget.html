@@ -142,7 +142,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점2</h1>
+      <h1>정상어학원<br>남동탄점</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -430,6 +430,9 @@ const COMMON_STORES = ['다이소', '쿠팡', '이마트', '편의점', '문구�
 let currentYear, currentMonth;
 let expenses = [], incomes = [], categories = [];
 let currentFileBlob = null, currentFileType = null, currentFileName = null;
+let lastParsedItems = null;
+
+function getParsedItems() { return lastParsedItems; }
 
 async function api(method, table, body, params = '') {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
@@ -578,15 +581,62 @@ function renderLedger() {
   if (!filteredExp.length) { tbody.innerHTML=''; expEmpty.style.display='block'; wrap.style.display='none'; }
   else {
     expEmpty.style.display='none'; wrap.style.display='block';
-    tbody.innerHTML = filteredExp.map(e => `<tr>
-      <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${e.date}</td>
-      <td>${renderThumb(e)}</td>
-      <td style="font-weight:500;max-width:100px;">${e.item}</td>
-      <td style="color:var(--text2);font-size:12px;">${e.store||'—'}</td>
-      <td><span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">${e.category}</span></td>
-      <td style="font-weight:600;color:var(--red);white-space:nowrap;">${fmt(e.amount)}</td>
-      <td><button class="delete-btn" onclick="deleteExpense('${e.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
-    </tr>`).join('');
+
+    // group_id로 묶기
+    const groups = {};
+    const ungrouped = [];
+    filteredExp.forEach(e => {
+      if (e.group_id) {
+        if (!groups[e.group_id]) groups[e.group_id] = [];
+        groups[e.group_id].push(e);
+      } else {
+        ungrouped.push(e);
+      }
+    });
+
+    let rows = '';
+    // 그룹 처리
+    Object.values(groups).forEach(items => {
+      const first = items[0];
+      const groupTotal = items.reduce((s,i) => s + Number(i.amount), 0);
+      rows += `<tr style="background:var(--surface2);">
+        <td rowspan="${items.length}" style="white-space:nowrap;color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.date}</td>
+        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;">${renderThumb(first)}</td>
+        <td style="font-weight:500;">${first.item}</td>
+        <td rowspan="${items.length}" style="color:var(--text2);font-size:12px;vertical-align:top;padding-top:13px;">${first.store||'—'}</td>
+        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;"><span style="background:${getCatColor(first.category)}22;color:${getCatColor(first.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">${first.category}</span></td>
+        <td style="font-weight:600;color:var(--red);white-space:nowrap;">${fmt(first.amount)}</td>
+        <td rowspan="${items.length}" style="vertical-align:top;padding-top:10px;"><button class="delete-btn" onclick="deleteGroup('${first.group_id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
+      </tr>`;
+      for (let i = 1; i < items.length; i++) {
+        rows += `<tr>
+          <td style="font-weight:500;">${items[i].item}</td>
+          <td style="font-weight:600;color:var(--red);white-space:nowrap;">${fmt(items[i].amount)}</td>
+        </tr>`;
+      }
+      if (items.length > 1) {
+        rows += `<tr style="border-top:2px solid var(--border2);">
+          <td colspan="2" style="text-align:right;font-size:12px;color:var(--text3);font-weight:600;">소계</td>
+          <td style="font-weight:700;color:var(--red);white-space:nowrap;">${fmt(groupTotal)}</td>
+          <td colspan="4"></td>
+        </tr>`;
+      }
+    });
+
+    // 비그룹 처리
+    ungrouped.forEach(e => {
+      rows += `<tr>
+        <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${e.date}</td>
+        <td>${renderThumb(e)}</td>
+        <td style="font-weight:500;">${e.item}</td>
+        <td style="color:var(--text2);font-size:12px;">${e.store||'—'}</td>
+        <td><span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">${e.category}</span></td>
+        <td style="font-weight:600;color:var(--red);white-space:nowrap;">${fmt(e.amount)}</td>
+        <td><button class="delete-btn" onclick="deleteExpense('${e.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>
+      </tr>`;
+    });
+
+    tbody.innerHTML = rows;
   }
   const totalExp = filteredExp.reduce((s,e)=>s+Number(e.amount),0);
   document.getElementById('ledger-exp-total').textContent = fmt(totalExp);
@@ -623,6 +673,13 @@ async function deleteExpense(id) {
   if (!confirm('삭제하시겠습니까?')) return;
   await api('DELETE', 'expenses', null, `?id=eq.${id}`);
   expenses = expenses.filter(e => e.id !== id);
+  renderLedger(); renderDashboard(); showToast('삭제되었습니다.');
+}
+
+async function deleteGroup(groupId) {
+  if (!confirm('이 영수증 전체를 삭제하시겠습니까?')) return;
+  await api('DELETE', 'expenses', null, `?group_id=eq.${groupId}`);
+  expenses = expenses.filter(e => e.group_id !== groupId);
   renderLedger(); renderDashboard(); showToast('삭제되었습니다.');
 }
 
@@ -820,6 +877,7 @@ async function analyzeReceipt(file, isPdf) {
     if (parsed.category && categories.find(c => c.name === parsed.category)) document.getElementById('exp-cat').value = parsed.category;
     if (parsed.summary) document.getElementById('exp-item').value = parsed.summary;
     if (parsed.store) document.getElementById('exp-store').value = parsed.store;
+    lastParsedItems = parsed.items?.length ? parsed.items : null;
 
     document.getElementById('ai-result-area').innerHTML = `<div class="ai-result">
       <div class="ai-result-title">${isPdf ? '📄 PDF 분석 완료' : '✨ AI 분석 완료'} — 자동 입력됨</div>
@@ -833,7 +891,7 @@ async function analyzeReceipt(file, isPdf) {
 }
 
 function openExpenseModal() {
-  currentFileBlob=null; currentFileType=null; currentFileName=null;
+  currentFileBlob=null; currentFileType=null; currentFileName=null; lastParsedItems=null;
   document.getElementById('upload-area').innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" style="margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p style="font-size:13px;">사진 또는 PDF 드래그 or 클릭</p><p style="font-size:11px;margin-top:4px;">JPG, PNG, PDF 지원</p>`;
   document.getElementById('ai-result-area').innerHTML='';
   ['exp-item','exp-amount','exp-memo','exp-store'].forEach(id=>document.getElementById(id).value='');
@@ -858,18 +916,63 @@ function closeIncomeModal() { document.getElementById('income-modal').style.disp
 function selectIncomeType(type,btn) { document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('inc-type').value=type; }
 
 async function saveExpense() {
-  const date=document.getElementById('exp-date').value, item=document.getElementById('exp-item').value.trim();
-  const amount=parseFloat(document.getElementById('exp-amount').value), category=document.getElementById('exp-cat').value;
-  const store=document.getElementById('exp-store').value.trim(), memo=document.getElementById('exp-memo').value.trim();
-  if (!date||!item||!amount) { showToast('날짜, 품목, 금액을 입력해주세요.'); return; }
-  const btn=document.getElementById('save-expense-btn'); btn.disabled=true; btn.textContent='저장 중...';
+  const date = document.getElementById('exp-date').value;
+  const category = document.getElementById('exp-cat').value;
+  const store = document.getElementById('exp-store').value.trim();
+  const memo = document.getElementById('exp-memo').value.trim();
+  const itemInput = document.getElementById('exp-item').value.trim();
+  const amountInput = parseFloat(document.getElementById('exp-amount').value);
+
+  if (!date || !itemInput || !amountInput) { showToast('날짜, 품목, 금액을 입력해주세요.'); return; }
+
+  const btn = document.getElementById('save-expense-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+
   try {
-    let file_url=null, file_type=null;
-    if (currentFileBlob) { showToast('영수증 업로드 중...'); file_url=await uploadFile(currentFileBlob,currentFileName); file_type=currentFileType; }
-    const [saved]=await api('POST','expenses',{date,item,store:store||null,category,amount,memo:memo||null,file_url,file_type});
-    expenses.unshift(saved); closeExpenseModal(); renderLedger(); renderDashboard(); showToast('저장되었습니다.');
-  } catch(e) { showToast('저장 실패: '+e.message); }
-  finally { btn.disabled=false; btn.textContent='저장'; }
+    let file_url = null, file_type = null;
+    if (currentFileBlob) {
+      showToast('영수증 업로드 중...');
+      file_url = await uploadFile(currentFileBlob, currentFileName);
+      file_type = currentFileType;
+    }
+
+    // AI 분석 결과에서 품목 리스트 가져오기
+    const aiItems = getParsedItems();
+    const group_id = Date.now().toString();
+
+    let savedItems = [];
+    if (aiItems && aiItems.length > 1) {
+      // 품목별로 각각 저장
+      for (let i = 0; i < aiItems.length; i++) {
+        const [row] = await api('POST', 'expenses', {
+          date, category, store: store || null, memo: memo || null,
+          item: aiItems[i].name,
+          amount: aiItems[i].amount,
+          file_url: i === 0 ? file_url : null,
+          file_type: i === 0 ? file_type : null,
+          group_id
+        });
+        savedItems.push(row);
+      }
+    } else {
+      // 단일 품목
+      const [row] = await api('POST', 'expenses', {
+        date, category, store: store || null, memo: memo || null,
+        item: itemInput, amount: amountInput,
+        file_url, file_type, group_id
+      });
+      savedItems.push(row);
+    }
+
+    expenses.unshift(...savedItems);
+    closeExpenseModal();
+    renderLedger(); renderDashboard();
+    showToast(`${savedItems.length}건 저장되었습니다.`);
+  } catch(e) {
+    showToast('저장 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '저장';
+  }
 }
 
 async function saveIncome() {
