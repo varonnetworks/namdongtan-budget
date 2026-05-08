@@ -163,7 +163,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄분원</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -799,11 +799,12 @@ function renderLedger() {
       if (entry.type === 'group') {
         const { items } = entry;
         const first = items[0];
+        const fileItem = items.find(i => i.file_url) || first;
         const groupTotal = items.reduce((s,i) => s + Number(i.amount), 0);
         const hasDiscount = items.some(i => Number(i.amount) < 0);
         return `<div class="exp-card">
           <div class="exp-card-header">
-            ${renderThumb(first)}
+            ${renderThumb(fileItem)}
             <div style="flex:1;">
               <div class="exp-card-date">${first.date}</div>
               <div class="exp-card-store">${first.store||'—'}</div>
