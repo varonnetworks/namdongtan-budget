@@ -5,7 +5,14 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { image, mimeType, prompt } = req.body;
+  // body가 string이면 파싱
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch(e) { return res.status(400).json({ error: "Invalid JSON body" }); }
+  }
+  if (!body) return res.status(400).json({ error: "Empty body" });
+
+  const { image, mimeType, prompt } = body;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
   try {
