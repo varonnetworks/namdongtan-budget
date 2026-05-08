@@ -1141,11 +1141,11 @@ async function extractPdfText(file) {
 function parsePdfText(text) {
   const result = { items: [], total: null, date: null, store: null, category: '기타', summary: '', discount: null };
 
-  // 날짜 추출 - 다양한 형식 지원
+  // 날짜 추출
   const datePatterns = [
-    /(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/,  // 2026.04.27, 2026-04-27
-    /(\d{4})\s+(\d{2})\s+(\d{2})/,                            // 2026 04 27 (공백)
-    /(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/,                  // 2026년 4월 27일
+    /(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/,
+    /(\d{4})\s+(\d{2})\s+(\d{2})/,
+    /(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/,
   ];
   for (const pat of datePatterns) {
     const m = text.match(pat);
@@ -1154,81 +1154,54 @@ function parsePdfText(text) {
 
   // 구매처 추출
   if (text.includes('쿠팡')) result.store = '쿠팡';
-  else if (text.includes('이마트')) result.store = '이마트';
   else if (text.includes('NAVER') || text.includes('네이버')) result.store = '네이버';
+  else if (text.includes('이마트')) result.store = '이마트';
   else if (text.includes('G마켓') || text.includes('지마켓')) result.store = 'G마켓';
   else if (text.includes('11번가')) result.store = '11번가';
 
-  // 실제 결제금액 추출 - "원" 앞에 오는 합리적인 크기의 숫자
-  const totalPatterns = [
-    /실제\s*총\s*결제\s*금액[\s\S]{0,50}?([1-9][\d,]{1,9})\s*원/,
-    /합계[\s\S]{0,20}?([1-9][\d,]{1,9})\s*원/,
-    /합계금액[\s\S]{0,50}?([1-9][\d,]{1,9})\s*원/,
-    /총\s*금액[\s\S]{0,50}?([1-9][\d,]{1,9})\s*원/,
-    /결제금액[\s\S]{0,50}?([1-9][\d,]{1,9})\s*원/,
-    /([1-9][\d,]{1,9})\s*원합계/,   // 뒤집힌 경우: "33,450 원합계"
-    /([1-9][\d,]{1,9})\s*원\s*합계/,
-  ];
-  for (const pattern of totalPatterns) {
-    const m = text.match(pattern);
-    if (m) { result.total = parseInt(m[1].replace(/,/g, '')); break; }
+  // 금액 추출 - "원" 근처의 모든 숫자 수집 후 합리적인 것 선택
+  const allAmounts = [];
+  const amRe = /([1-9][\d,]{1,8})\s*원/g;
+  let am;
+  while ((am = amRe.exec(text)) !== null) {
+    const v = parseInt(am[1].replace(/,/g,''));
+    if (v >= 100 && v <= 9999999) allAmounts.push(v);
   }
+  if (allAmounts.length === 1) result.total = allAmounts[0];
+  else if (allAmounts.length > 1) result.total = Math.max(...allAmounts);
 
-  // 할인금액 추출
-  const grossMatch = text.match(/총\s*거래액\s*합계[\s\S]{0,20}?([1-9][\d,]{1,9})/);
-  const netMatch = text.match(/실제\s*총\s*결제\s*금액[\s\S]{0,20}?([1-9][\d,]{1,9})/);
-  if (grossMatch && netMatch) {
-    const gross = parseInt(grossMatch[1].replace(/,/g,''));
-    const net = parseInt(netMatch[1].replace(/,/g,''));
-    const diff = gross - net;
+  // 쿠팡 거래명세표 할인 계산
+  const grossM = text.match(/총\s*거래액\s*합계[\s\S]{0,20}?([1-9][\d,]{1,8})/);
+  const netM = text.match(/실제\s*총\s*결제\s*금액[\s\S]{0,20}?([1-9][\d,]{1,8})/);
+  if (grossM && netM) {
+    const diff = parseInt(grossM[1].replace(/,/g,'')) - parseInt(netM[1].replace(/,/g,''));
     if (diff > 0) result.discount = diff;
   }
 
-  // 품목 추출 - 쿠팡 거래명세표 형식
-  const itemPattern = /\d{4}\s+\d{2}\s+\d{2}\s+(.+?)\s+\d+\s+([\d,]+)/g;
-  let match;
-  while ((match = itemPattern.exec(text)) !== null) {
-    const name = match[1].trim();
-    const amount = parseInt(match[2].replace(/,/g, ''));
+  // 쿠팡 거래명세표 품목 추출
+  const itemRe = /\d{4}\s+\d{2}\s+\d{2}\s+(.+?)\s+\d+\s+([\d,]+)/g;
+  let im;
+  while ((im = itemRe.exec(text)) !== null) {
+    const name = im[1].trim();
+    const amount = parseInt(im[2].replace(/,/g,''));
     if (name && amount && amount < 10000000) result.items.push({ name, amount });
   }
 
-  // 네이버/일반 영수증 - 상품명 추출
+  // 상품명 키워드로 추출
   if (!result.items.length) {
-    // 정상: "상품명 xxx 합계"
-    const m1 = text.match(/상품명\s+(.+?)(?=\s*[\d,]+\s*원|\s*합계)/s);
-    if (m1) {
-      const name = m1[1].trim().replace(/\s+/g, ' ');
-      if (name) result.items.push({ name, amount: result.total || 0 });
-    }
-    // 뒤집힌: "xxx 상품명" - 상품명 라벨 앞에 값이 있는 경우
-    else {
-      const m2 = text.match(/(.+?)\s*상품명/s);
-      if (m2) {
-        // 마지막 의미있는 단어들 추출
-        const before = m2[1].split(/\n/).map(l=>l.trim()).filter(l=>l && !l.match(/^\d{4}[\d.:\s]+$/) && !l.match(/^주문번호|거래일시|구매영수증$/));
-        if (before.length) {
-          const name = before[before.length-1].replace(/\s+/g,' ').trim();
-          if (name) result.items.push({ name, amount: result.total || 0 });
-        }
-      }
+    const m = text.match(/상품명\s+([\S].+?)(?=\s{2,}|\n|합계|회사명|$)/s);
+    if (m) {
+      const name = m[1].trim().replace(/\s+/g,' ');
+      if (name && name.length < 100) result.items.push({ name, amount: result.total || 0 });
     }
   }
 
-  if (result.items.length) {
-    if (result.total) result.items[result.items.length-1].amount = result.total;
-    result.summary = result.items.map(i => i.name).join(', ');
-  } else if (result.total) {
-    result.summary = '구매 내역';
-  }
+  if (result.items.length) result.summary = result.items.map(i=>i.name).join(', ');
+  else if (result.total) result.summary = '구매 내역';
 
-  // 카테고리 추정
-  const foodKeywords = ['캔디', '과자', '음료', '식품', '커피', '간식', '롤리팝', '초콜릿'];
-  const supplyKeywords = ['용지', '복사지', '볼펜', '테이프', '파일', '노트', '문구'];
-  const printKeywords = ['인화', '인쇄', '출력', '복사'];
-  if (foodKeywords.some(k => text.includes(k))) result.category = '식비';
-  else if (printKeywords.some(k => text.includes(k))) result.category = '소모품';
-  else if (supplyKeywords.some(k => text.includes(k))) result.category = '소모품';
+  if (['캔디','과자','음료','식품','커피','간식','롤리팝','초콜릿'].some(k=>text.includes(k))) result.category = '식비';
+  else if (['인화','인쇄','출력'].some(k=>text.includes(k))) result.category = '소모품';
+  else if (['용지','복사지','볼펜','테이프','파일','노트','문구'].some(k=>text.includes(k))) result.category = '소모품';
 
   return result;
 }
