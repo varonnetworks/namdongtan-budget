@@ -143,9 +143,11 @@
   .exp-card-store { font-size: 11px; color: var(--text2); }
   .exp-card-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
   .exp-card-row:last-child { border-bottom: none; }
-  .exp-card-item { flex: 1; font-size: 13px; font-weight: 500; }
-  .exp-card-cat { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
-  .exp-card-amount { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .exp-card-item { flex: 1; font-size: 13px; font-weight: 500; cursor: pointer; min-width: 0; }
+  .exp-card-item:hover { color: var(--accent); }
+  .exp-card-cat { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0; width: 60px; text-align: center; }
+  .exp-card-amount { font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0; width: 80px; text-align: right; cursor: pointer; }
+  .exp-card-amount:hover { opacity: 0.7; }
   .exp-card-footer { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: var(--surface2); border-top: 1px solid var(--border); font-size: 12px; }
   .exp-card-total { font-weight: 700; color: var(--red); }
   .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 400; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
@@ -821,28 +823,29 @@ function renderThumb(e) {
 
 async function editCell(event, expId, field, currentVal) {
   event.stopPropagation();
-  const td = event.currentTarget.closest('td');
+  const el = event.currentTarget;
   const isAmount = field === 'amount';
+  const originalHTML = el.innerHTML;
   const input = document.createElement('input');
   input.type = isAmount ? 'number' : 'text';
-  input.value = isAmount ? Math.abs(currentVal) : currentVal;
-  input.style.cssText = `width:100%;font-size:13px;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-family:inherit;`;
-  td.innerHTML = '';
-  td.appendChild(input);
+  input.value = isAmount ? Math.abs(Number(currentVal)) : currentVal;
+  input.style.cssText = `width:100%;font-size:13px;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-family:inherit;box-sizing:border-box;`;
+  el.innerHTML = '';
+  el.appendChild(input);
   input.focus(); input.select();
   const save = async () => {
     let val = input.value.trim();
-    if (!val) { renderLedger(); return; }
+    if (!val) { el.innerHTML = originalHTML; return; }
     if (isAmount) val = Number(currentVal) < 0 ? -Math.abs(parseFloat(val)) : parseFloat(val);
     try {
       await api('PATCH', 'expenses', { [field]: val }, `?id=eq.${expId}`);
       const exp = expenses.find(e => e.id === expId);
       if (exp) exp[field] = val;
       renderLedger(); renderDashboard();
-    } catch(e) { showToast('수정 실패'); renderLedger(); }
+    } catch(e) { showToast('수정 실패'); el.innerHTML = originalHTML; }
   };
   input.onblur = save;
-  input.onkeydown = e => { if(e.key==='Enter') save(); if(e.key==='Escape') renderLedger(); };
+  input.onkeydown = e => { if(e.key==='Enter') { e.preventDefault(); save(); } if(e.key==='Escape') { el.innerHTML = originalHTML; } };
 }
 
 async function editCategory(event, groupId, expId, currentCat) {
@@ -1134,11 +1137,21 @@ function parsePdfText(text) {
     if (m) { result.total = parseInt(m[1].replace(/,/g, '')); break; }
   }
 
-  // 할인금액 추출 - 명확하게 양수일 때만
-  const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/);
-  if (discountMatch) {
-    const discount = parseInt(discountMatch[1].replace(/,/g, ''));
-    if (discount > 0) result.discount = discount;
+  // 할인금액 추출 - 총거래액과 실결제 차이로 계산
+  const grossMatch = text.match(/총\s*거래액\s*합계\s*[\s\S]{0,20}?([1-9][\d,]+)/);
+  const netMatch = text.match(/실제\s*총\s*결제\s*금액\s*[\s\S]{0,20}?([1-9][\d,]+)/);
+  if (grossMatch && netMatch) {
+    const gross = parseInt(grossMatch[1].replace(/,/g,''));
+    const net = parseInt(netMatch[1].replace(/,/g,''));
+    const diff = gross - net;
+    if (diff > 0) result.discount = diff;
+  } else {
+    // 폴백: 할인금액 직접 추출
+    const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,10}?([1-9][\d,]+)/);
+    if (discountMatch) {
+      const discount = parseInt(discountMatch[1].replace(/,/g,''));
+      if (discount > 0 && discount < (result.total || Infinity)) result.discount = discount;
+    }
   }
 
   // 품목 추출
