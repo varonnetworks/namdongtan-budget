@@ -159,7 +159,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄분원</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1161,10 +1161,12 @@ function parsePdfText(text) {
 
   // 실제 결제금액 추출
   const totalPatterns = [
-    /실제\s*총\s*결제\s*금액\s*[\s\S]*?(\d[\d,]+)/,
-    /합계금액\s*[\s\S]*?(\d[\d,]+)/,
-    /총\s*금액\s*[\s\S]*?(\d[\d,]+)/,
-    /결제금액\s*[\s\S]*?(\d[\d,]+)/,
+    /실제\s*총\s*결제\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
+    /합계\s*[\s\S]{0,10}?([1-9][\d,]+)\s*원/,              // 네이버: 합계 33,450원
+    /합계금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
+    /총\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
+    /결제금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
+    /총\s*결제\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
   ];
   for (const pattern of totalPatterns) {
     const m = text.match(pattern);
@@ -1180,7 +1182,6 @@ function parsePdfText(text) {
     const diff = gross - net;
     if (diff > 0) result.discount = diff;
   } else {
-    // 폴백: 할인금액 직접 추출
     const discountMatch = text.match(/할인\s*금액\s*[\s\S]{0,10}?([1-9][\d,]+)/);
     if (discountMatch) {
       const discount = parseInt(discountMatch[1].replace(/,/g,''));
@@ -1188,7 +1189,7 @@ function parsePdfText(text) {
     }
   }
 
-  // 품목 추출
+  // 품목 추출 - 쿠팡 거래명세표 형식
   const itemPattern = /\d{4}\s+\d{2}\s+\d{2}\s+(.+?)\s+\d+\s+([\d,]+)/g;
   let match;
   while ((match = itemPattern.exec(text)) !== null) {
@@ -1197,12 +1198,24 @@ function parsePdfText(text) {
     if (name && amount && amount < 10000000) result.items.push({ name, amount });
   }
 
+  // 네이버/일반 영수증 - 상품명 추출
+  if (!result.items.length) {
+    const itemNameMatch = text.match(/상품명\s+(.+?)(?:\n|합계|결제)/s);
+    if (itemNameMatch) {
+      const name = itemNameMatch[1].trim().replace(/\s+/g, ' ');
+      if (name && result.total) result.items.push({ name, amount: result.total });
+    }
+  }
+
   if (result.items.length) result.summary = result.items.map(i => i.name).join(', ');
+  else if (result.total) result.summary = '구매 내역';
 
   // 카테고리 추정
   const foodKeywords = ['캔디', '과자', '음료', '식품', '커피', '간식', '롤리팝', '초콜릿'];
   const supplyKeywords = ['용지', '복사지', '볼펜', '테이프', '파일', '노트', '문구'];
+  const printKeywords = ['인화', '인쇄', '출력', '복사'];
   if (foodKeywords.some(k => text.includes(k))) result.category = '식비';
+  else if (printKeywords.some(k => text.includes(k))) result.category = '소모품';
   else if (supplyKeywords.some(k => text.includes(k))) result.category = '소모품';
 
   return result;
