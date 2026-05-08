@@ -159,7 +159,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1234,6 +1234,7 @@ async function analyzeReceipt(file, isPdf) {
     let parsed;
     if (isPdf) {
       const text = await extractPdfText(file);
+      console.log('PDF 추출 텍스트:', text);
       parsed = parsePdfText(text);
     } else {
       const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = ev => res(ev.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
