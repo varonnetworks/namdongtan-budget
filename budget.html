@@ -159,7 +159,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄</h1>
+      <h1>정상어학원<br>남동탄점</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -425,7 +425,10 @@
         <div class="form-group" style="margin-bottom:0;"><label class="form-label">날짜</label><input type="date" class="form-input" id="exp-date"></div>
         <div class="form-group" style="margin-bottom:0;"><label class="form-label">카테고리</label><select class="form-input" id="exp-cat"></select></div>
       </div>
-      <div class="form-group" style="margin-top:14px;"><label class="form-label">품목명</label><input type="text" class="form-input" id="exp-item" placeholder="예: A4용지 5박스, 건전지 AA 20개..."></div>
+      <div class="form-group" style="margin-top:14px;"><label class="form-label">품목명</label>
+        <input type="text" class="form-input" id="exp-item" placeholder="예: A4용지, 볼펜, 테이프 (쉼표로 구분하면 자동 분리)">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">💡 쉼표로 구분하면 품목별로 따로 저장돼요</div>
+      </div>
       <div class="form-group">
         <label class="form-label">구매처</label>
         <input type="text" class="form-input" id="exp-store" placeholder="예: 다이소, 쿠팡, 편의점...">
@@ -850,38 +853,50 @@ async function editCell(event, expId, field, currentVal) {
 
 async function editCategory(event, groupId, expId, currentCat) {
   event.stopPropagation();
-  const el = event.currentTarget;
-  const catNames = categories.map(c => c.name);
-  const select = document.createElement('select');
-  select.style.cssText = 'font-size:11px;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;font-family:inherit;max-width:90px;';
-  catNames.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    if (name === currentCat) opt.selected = true;
-    select.appendChild(opt);
-  });
-  el.innerHTML = '';
-  el.appendChild(select);
-  select.focus();
+  event.preventDefault();
 
-  let changed = false;
-  select.onchange = async () => {
-    changed = true;
-    const newCat = select.value;
-    try {
-      if (groupId) {
-        await api('PATCH', 'expenses', { category: newCat }, `?group_id=eq.${groupId}`);
-        expenses.forEach(e => { if (e.group_id === groupId) e.category = newCat; });
-      } else {
-        await api('PATCH', 'expenses', { category: newCat }, `?id=eq.${expId}`);
-        const exp = expenses.find(e => e.id === expId);
-        if (exp) exp.category = newCat;
-      }
-      renderLedger(); showToast('카테고리 수정됨');
-    } catch(e) { showToast('수정 실패: ' + e.message); renderLedger(); }
-  };
-  select.onblur = () => { setTimeout(() => { if (!changed) renderLedger(); }, 200); };
-  select.onkeydown = e => { if(e.key==='Escape') renderLedger(); };
+  // 기존 팝업 제거
+  document.getElementById('cat-popup')?.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'cat-popup';
+  popup.style.cssText = `position:fixed;z-index:500;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:6px;min-width:120px;`;
+
+  // 위치 계산
+  const rect = event.currentTarget.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 4) + 'px';
+  popup.style.left = rect.left + 'px';
+
+  categories.forEach(c => {
+    const item = document.createElement('div');
+    item.style.cssText = `padding:6px 10px;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;color:${c.color};background:${c.color}22;margin-bottom:3px;`;
+    item.textContent = c.name;
+    item.onmousedown = async (e) => {
+      e.stopPropagation();
+      popup.remove();
+      try {
+        if (groupId) {
+          await api('PATCH', 'expenses', { category: c.name }, `?group_id=eq.${groupId}`);
+          expenses.forEach(e => { if (e.group_id === groupId) e.category = c.name; });
+        } else {
+          await api('PATCH', 'expenses', { category: c.name }, `?id=eq.${expId}`);
+          const exp = expenses.find(e => e.id === expId);
+          if (exp) exp.category = c.name;
+        }
+        renderLedger(); showToast('카테고리 수정됨');
+      } catch(e) { showToast('수정 실패'); }
+    };
+    popup.appendChild(item);
+  });
+
+  document.body.appendChild(popup);
+
+  // 바깥 클릭하면 닫기
+  setTimeout(() => {
+    document.addEventListener('mousedown', function close(e) {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('mousedown', close); }
+    });
+  }, 0);
 }
 
 async function deleteExpense(id) {
@@ -1262,13 +1277,14 @@ async function saveExpense() {
       file_type = currentFileType;
     }
 
-    // AI 분석 결과에서 품목 리스트 가져오기
+    // AI 분석 결과 품목 또는 쉼표 구분 품목 처리
     const aiItems = getParsedItems();
+    const manualItems = itemInput.split(',').map(s => s.trim()).filter(Boolean);
     const group_id = Date.now().toString();
 
     let savedItems = [];
     if (aiItems && aiItems.length > 1) {
-      // 품목별로 각각 저장
+      // AI 분석 결과로 품목별 저장
       for (let i = 0; i < aiItems.length; i++) {
         const [row] = await api('POST', 'expenses', {
           date, category, store: store || null, memo: memo || null,
@@ -1284,9 +1300,21 @@ async function saveExpense() {
       if (lastParsedDiscount && lastParsedDiscount > 0) {
         const [row] = await api('POST', 'expenses', {
           date, category, store: store || null, memo: '할인',
-          item: '할인',
-          amount: -lastParsedDiscount,
-          file_url: null, file_type: null,
+          item: '할인', amount: -lastParsedDiscount,
+          file_url: null, file_type: null, group_id
+        });
+        savedItems.push(row);
+      }
+    } else if (manualItems.length > 1) {
+      // 쉼표로 구분된 품목들 각각 저장 (금액은 균등 분배)
+      const perAmount = Math.round(amountInput / manualItems.length);
+      for (let i = 0; i < manualItems.length; i++) {
+        const amt = i === manualItems.length - 1 ? amountInput - perAmount * (manualItems.length - 1) : perAmount;
+        const [row] = await api('POST', 'expenses', {
+          date, category, store: store || null, memo: memo || null,
+          item: manualItems[i], amount: amt,
+          file_url: i === 0 ? file_url : null,
+          file_type: i === 0 ? file_type : null,
           group_id
         });
         savedItems.push(row);
