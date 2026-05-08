@@ -159,7 +159,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄</h1>
+      <h1>정상어학원<br>남동탄점</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1161,12 +1161,13 @@ function parsePdfText(text) {
 
   // 실제 결제금액 추출
   const totalPatterns = [
-    /실제\s*총\s*결제\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
-    /합계\s*[\s\S]{0,10}?([1-9][\d,]+)\s*원/,              // 네이버: 합계 33,450원
-    /합계금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
-    /총\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
-    /결제금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
-    /총\s*결제\s*금액\s*[\s\S]{0,30}?([1-9][\d,]+)/,
+    /실제\s*총\s*결제\s*금액[\s\S]{0,30}?([1-9][\d,]+)/,
+    /합계\s*([1-9][\d,]+)\s*원/,
+    /합계금액[\s\S]{0,30}?([1-9][\d,]+)/,
+    /총\s*금액[\s\S]{0,30}?([1-9][\d,]+)/,
+    /결제금액[\s\S]{0,30}?([1-9][\d,]+)/,
+    /총\s*결제\s*금액[\s\S]{0,30}?([1-9][\d,]+)/,
+    /([1-9][\d,]+)\s*원\s*$/m,  // 마지막 금액
   ];
   for (const pattern of totalPatterns) {
     const m = text.match(pattern);
@@ -1200,10 +1201,16 @@ function parsePdfText(text) {
 
   // 네이버/일반 영수증 - 상품명 추출
   if (!result.items.length) {
-    const itemNameMatch = text.match(/상품명\s+(.+?)(?:\n|합계|결제)/s);
-    if (itemNameMatch) {
-      const name = itemNameMatch[1].trim().replace(/\s+/g, ' ');
-      if (name && result.total) result.items.push({ name, amount: result.total });
+    const patterns = [
+      /상품명\s+(.+?)(?=\s*합계|\s*거래일|\s*주문번호|\s*회사명|$)/s,
+      /상품명\s*[:：]?\s*(.+?)(?=\n\n|\n[가-힣])/s,
+    ];
+    for (const pat of patterns) {
+      const m = text.match(pat);
+      if (m) {
+        const name = m[1].trim().replace(/\s+/g, ' ');
+        if (name && result.total) { result.items.push({ name, amount: result.total }); break; }
+      }
     }
   }
 
