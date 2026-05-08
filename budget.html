@@ -163,7 +163,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점</h1>
+      <h1>정상어학원<br>남동탄분원</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1318,7 +1318,7 @@ function openExpenseModal() {
   addItemRow();
   document.getElementById('upload-area').innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" style="margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p style="font-size:13px;">사진 또는 PDF 드래그 or 클릭</p><p style="font-size:11px;margin-top:4px;">JPG, PNG, PDF 지원</p>`;
   document.getElementById('ai-result-area').innerHTML='';
-  ['exp-item','exp-amount','exp-memo','exp-store'].forEach(id=>document.getElementById(id).value='');
+  ['exp-memo','exp-store'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
   document.getElementById('file-input').value='';
   if (categories.length) document.getElementById('exp-cat').value=categories[0].name;
