@@ -178,14 +178,14 @@
   <button class="hamburger" onclick="toggleSidebar()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄점</div>
+  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄</div>
   <div style="width:34px;"></div>
 </div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄점</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -766,7 +766,7 @@ function renderDashboard() {
   totalBalEl.style.color = cumBalance >= 0 ? '#0ea5e9' : '#dc2626';
   const now = new Date();
   const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
-  document.getElementById('m-balance-label').textContent = isCurrentMonth ? '현재 누적 잔액' : `${currentYear}년 ${currentMonth}월 말 시재`;
+  document.getElementById('m-balance-label').textContent = isCurrentMonth ? '현재 잔액' : `${currentYear}년 ${currentMonth}월 말 시재`;
 
   document.getElementById('m-income').textContent = fmt(totalInc);
   const byType = {};
