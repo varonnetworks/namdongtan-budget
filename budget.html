@@ -178,14 +178,14 @@
   <button class="hamburger" onclick="toggleSidebar()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄</div>
+  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄점</div>
   <div style="width:34px;"></div>
 </div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄</h1>
+      <h1>정상어학원<br>남동탄분원</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -261,7 +261,7 @@
           <div class="bar-chart" id="cat-bar-chart"><div class="empty-state" style="padding:16px;">지출 내역 없음</div></div>
         </div>
         <div class="card">
-          <div style="font-size:13px;font-weight:700;margin-bottom:16px;">최근 지출 5건</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:16px;" id="dash-right-title">최근 지출 5건</div>
           <div id="recent-expenses"><div class="empty-state" style="padding:16px;">지출 내역 없음</div></div>
         </div>
       </div>
@@ -336,13 +336,21 @@
     <!-- CATEGORY -->
     <section class="section" id="section-category">
       <div class="page-header">
-        <div><div class="page-title">카테고리 분석</div><div class="page-sub">카테고리별 지출 비중</div></div>
-        <div class="month-nav">
-          <button onclick="changeMonth(-1)">&#8249;</button>
-          <select class="month-select" id="year-select-cat" onchange="selectYearMonth()"></select>
-          <select class="month-select" id="month-select-cat" onchange="selectYearMonth()"></select>
-          <button onclick="changeMonth(1)">&#8250;</button>
-          <button class="today-btn" onclick="goToday()">이번달</button>
+        <div><div class="page-title">카테고리 분석</div><div class="page-sub" id="cat-period-sub">카테고리별 지출 비중</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="month-nav">
+            <button onclick="changeMonth(-1)">&#8249;</button>
+            <select class="month-select" id="year-select-cat" onchange="selectYearMonth()"></select>
+            <select class="month-select" id="month-select-cat" onchange="selectYearMonth()"></select>
+            <button onclick="changeMonth(1)">&#8250;</button>
+            <button class="today-btn" onclick="goToday()">이번달</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="date" class="form-input" id="cat-from" style="width:130px;padding:5px 8px;font-size:12px;" onchange="renderCategory()">
+            <span style="font-size:12px;color:var(--text3);">~</span>
+            <input type="date" class="form-input" id="cat-to" style="width:130px;padding:5px 8px;font-size:12px;" onchange="renderCategory()">
+            <button class="btn" style="padding:5px 10px;font-size:12px;" onclick="clearCatPeriod()">월 기준</button>
+          </div>
         </div>
       </div>
       <div id="cat-analysis"></div>
@@ -766,7 +774,7 @@ function renderDashboard() {
   totalBalEl.style.color = cumBalance >= 0 ? '#0ea5e9' : '#dc2626';
   const now = new Date();
   const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
-  document.getElementById('m-balance-label').textContent = isCurrentMonth ? '현재 잔액' : `${currentYear}년 ${currentMonth}월 말 시재`;
+  document.getElementById('m-balance-label').textContent = isCurrentMonth ? '현재 누적 잔액' : `${currentYear}년 ${currentMonth}월 말 시재`;
 
   document.getElementById('m-income').textContent = fmt(totalInc);
   const byType = {};
@@ -785,16 +793,43 @@ function renderDashboard() {
   const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
   const maxV = sorted[0]?.[1] || 1;
   document.getElementById('cat-bar-chart').innerHTML = sorted.length
-    ? sorted.map(([cat,val]) => `<div class="bar-row"><div class="bar-label">${cat}</div><div class="bar-track"><div class="bar-fill" style="width:${(val/maxV*100).toFixed(1)}%;background:${getCatColor(cat)};"></div></div><div class="bar-amount">${fmt(val)}</div></div>`).join('')
+    ? sorted.map(([cat,val]) => `<div class="bar-row" style="cursor:pointer;" onclick="showCatDetail('${cat}')">
+        <div class="bar-label" style="font-weight:600;color:${getCatColor(cat)};">${cat}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val/maxV*100).toFixed(1)}%;background:${getCatColor(cat)};"></div></div>
+        <div class="bar-amount">${fmt(val)}</div>
+      </div>`).join('')
     : '<div class="empty-state" style="padding:16px;">지출 내역 없음</div>';
 
-  const recent = expenses.slice(0, 5);
-  document.getElementById('recent-expenses').innerHTML = recent.length
-    ? recent.map(e => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
-        <div><div style="font-size:13px;font-weight:500;">${e.item}${e.store ? ` <span style="font-size:11px;color:var(--text3);">· ${e.store}</span>` : ''}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${e.date} · <span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:1px 6px;border-radius:4px;font-weight:600;">${e.category}</span></div></div>
-        <div style="font-size:13px;font-weight:600;color:var(--red);">${fmt(e.amount)}</div></div>`).join('')
-    : '<div class="empty-state" style="padding:16px;">지출 내역 없음</div>';
+  // 기본 오른쪽 패널 - 최근 5건
+  showCatDetail(null);
+}
+
+function showCatDetail(cat) {
+  const key = getKey();
+  const mExp = expenses.filter(e => e.date?.startsWith(key));
+  const titleEl = document.getElementById('dash-right-title');
+  const listEl = document.getElementById('recent-expenses');
+
+  if (!cat) {
+    titleEl.textContent = '최근 지출 5건';
+    const recent = expenses.slice(0, 5);
+    listEl.innerHTML = recent.length
+      ? recent.map(e => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div><div style="font-size:13px;font-weight:500;">${e.item}${e.store ? ` <span style="font-size:11px;color:var(--text3);">· ${e.store}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${e.date} · <span style="background:${getCatColor(e.category)}22;color:${getCatColor(e.category)};padding:1px 6px;border-radius:4px;font-weight:600;">${e.category}</span></div></div>
+          <div style="font-size:13px;font-weight:600;color:var(--red);">${fmt(e.amount)}</div></div>`).join('')
+      : '<div class="empty-state" style="padding:16px;">지출 내역 없음</div>';
+  } else {
+    const catExp = mExp.filter(e => e.category === cat && e.item !== '할인').sort((a,b) => b.date.localeCompare(a.date));
+    const catTotal = catExp.reduce((s,e) => s + Number(e.amount), 0);
+    titleEl.innerHTML = `<span style="color:${getCatColor(cat)};">${cat}</span> 지출 <span style="font-size:12px;font-weight:400;color:var(--text3);">${fmt(catTotal)}</span>`;
+    listEl.innerHTML = catExp.length
+      ? catExp.map(e => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div><div style="font-size:13px;font-weight:500;">${e.item}${e.store ? ` <span style="font-size:11px;color:var(--text3);">· ${e.store}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${e.date}</div></div>
+          <div style="font-size:13px;font-weight:600;color:var(--red);">${fmt(e.amount)}</div></div>`).join('')
+      : '<div class="empty-state" style="padding:16px;">해당 카테고리 지출 없음</div>';
+  }
 }
 
 function showIncomeDetail() {
@@ -1069,11 +1104,37 @@ async function deleteIncome(id) {
   renderLedger(); renderDashboard(); showToast('삭제되었습니다.');
 }
 
+function clearCatPeriod() {
+  document.getElementById('cat-from').value = '';
+  document.getElementById('cat-to').value = '';
+  renderCategory();
+}
+
 function renderCategory() {
+  const from = document.getElementById('cat-from')?.value;
+  const to = document.getElementById('cat-to')?.value;
   const key = getKey();
-  const mExp = expenses.filter(e => e.date?.startsWith(key));
+
+  let mExp, periodLabel;
+  if (from && to) {
+    mExp = expenses.filter(e => e.date >= from && e.date <= to);
+    periodLabel = `${from} ~ ${to}`;
+  } else if (from) {
+    mExp = expenses.filter(e => e.date >= from);
+    periodLabel = `${from} 이후`;
+  } else if (to) {
+    mExp = expenses.filter(e => e.date <= to);
+    periodLabel = `${to} 이전`;
+  } else {
+    mExp = expenses.filter(e => e.date?.startsWith(key));
+    periodLabel = `${currentYear}년 ${currentMonth}월`;
+  }
+
+  const subEl = document.getElementById('cat-period-sub');
+  if (subEl) subEl.textContent = periodLabel;
+
   const catTotals = {};
-  mExp.forEach(e => { catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
+  mExp.filter(e => e.item !== '할인').forEach(e => { catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
   const total = Object.values(catTotals).reduce((s,v)=>s+v,0);
   const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
   const el = document.getElementById('cat-analysis');
