@@ -178,14 +178,14 @@
   <button class="hamburger" onclick="toggleSidebar()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄점</div>
+  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄</div>
   <div style="width:34px;"></div>
 </div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄분원</h1>
+      <h1>정상어학원<br>남동탄</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1104,6 +1104,26 @@ async function deleteIncome(id) {
   renderLedger(); renderDashboard(); showToast('삭제되었습니다.');
 }
 
+function showCatDetailInAnalysis(cat, mExp) {
+  const panel = document.getElementById('cat-detail-panel');
+  if (!panel) return;
+  const catExp = (mExp || window.mExpData || []).filter(e => e.category === cat && e.item !== '할인').sort((a,b) => b.date.localeCompare(a.date));
+  const catTotal = catExp.reduce((s,e) => s + Number(e.amount), 0);
+  panel.innerHTML = `
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;">
+      <span style="color:${getCatColor(cat)};">▌ ${cat}</span>
+      <span style="font-size:12px;font-weight:400;color:var(--text3);margin-left:8px;">${fmt(catTotal)} · ${catExp.length}건</span>
+    </div>
+    ${catExp.length ? catExp.map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:500;">${e.item}</div>
+          <div style="font-size:11px;color:var(--text3);">${e.date}${e.store ? ' · ' + e.store : ''}</div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--red);">${fmt(e.amount)}</div>
+      </div>`).join('') : '<div class="empty-state" style="padding:16px;">해당 카테고리 지출 없음</div>'}`;
+}
+
 function clearCatPeriod() {
   document.getElementById('cat-from').value = '';
   document.getElementById('cat-to').value = '';
@@ -1138,14 +1158,34 @@ function renderCategory() {
   const total = Object.values(catTotals).reduce((s,v)=>s+v,0);
   const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
   const el = document.getElementById('cat-analysis');
-  if (!sorted.length) { el.innerHTML='<div class="empty-state">이번달 지출 내역이 없습니다.</div>'; return; }
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-    ${sorted.map(([cat,val])=>`<div class="metric" style="border-left:3px solid ${getCatColor(cat)};"><div class="metric-label">${cat}</div><div class="metric-value" style="font-size:18px;">${fmt(val)}</div><div class="metric-sub">${total?(val/total*100).toFixed(1):0}%</div></div>`).join('')}
+  if (!sorted.length) { el.innerHTML='<div class="empty-state">지출 내역이 없습니다.</div>'; return; }
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+    ${sorted.map(([cat,val])=>`<div class="metric" style="border-left:3px solid ${getCatColor(cat)};cursor:pointer;" onclick="showCatDetailInAnalysis('${cat}', mExpData)">
+      <div class="metric-label">${cat}</div>
+      <div class="metric-value" style="font-size:18px;">${fmt(val)}</div>
+      <div class="metric-sub">${total?(val/total*100).toFixed(1):0}%</div>
+    </div>`).join('')}
   </div>
-  <div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:16px;">비중 비교</div>
-    <div class="bar-chart">${sorted.map(([cat,val])=>`<div class="bar-row"><div class="bar-label">${cat}</div><div class="bar-track"><div class="bar-fill" style="width:${(val/sorted[0][1]*100).toFixed(1)}%;background:${getCatColor(cat)};"></div></div><div class="bar-amount">${fmt(val)}</div></div>`).join('')}</div>
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>합계</span><span style="color:var(--red);">${fmt(total)}</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px;">비중 비교</div>
+      <div class="bar-chart">${sorted.map(([cat,val])=>`
+        <div class="bar-row" style="cursor:pointer;" onclick="showCatDetailInAnalysis('${cat}', mExpData)">
+          <div class="bar-label" style="color:${getCatColor(cat)};font-weight:600;">${cat}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(val/sorted[0][1]*100).toFixed(1)}%;background:${getCatColor(cat)};"></div></div>
+          <div class="bar-amount">${fmt(val)}</div>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>합계</span><span style="color:var(--red);">${fmt(total)}</span></div>
+    </div>
+    <div class="card" id="cat-detail-panel">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--text3);">카테고리를 클릭하면 지출 내역이 표시됩니다</div>
+    </div>
   </div>`;
+
+  // mExp를 전역으로 저장해서 클릭 핸들러에서 사용
+  window.mExpData = mExp;
 }
 
 function renderSupply() {
