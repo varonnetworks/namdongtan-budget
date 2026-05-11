@@ -178,14 +178,14 @@
   <button class="hamburger" onclick="toggleSidebar()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄</div>
+  <div style="font-size:13px;font-weight:700;">정상어학원 남동탄분원</div>
   <div style="width:34px;"></div>
 </div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <h1>정상어학원<br>남동탄</h1>
+      <h1>정상어학원<br>남동탄분원</h1>
       <span>운영비 관리 시스템</span>
     </div>
     <nav class="sidebar-nav">
@@ -1222,7 +1222,7 @@ function renderSupply() {
     }
 
     if (!daysPerBox) {
-      return `<div class="supply-card">
+      return `<div class="supply-card" style="cursor:pointer;" onclick="showSupplyHistory('${label}')">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;">${label}</div><div style="font-size:11px;color:var(--text3);">${matches.length}회</div></div>
         <div style="font-size:12px;color:var(--text3);">수량 정보 2건 이상 필요<br>마지막: ${lastDate}${lastQty>1?` (${lastQty}박스)`:''}</div>
       </div>`;
@@ -1232,7 +1232,7 @@ function renderSupply() {
     const pct = Math.min(100, Math.round(daysSince / (daysPerBox * lastQty) * 100));
     const cls = totalDaysLeft > 14 ? 'ok' : totalDaysLeft > 7 ? 'warn' : 'danger';
 
-    return `<div class="supply-card">
+    return `<div class="supply-card" style="cursor:pointer;" onclick="showSupplyHistory('${label}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div style="font-size:13px;font-weight:700;">${label}</div>
         <div style="font-size:11px;color:var(--text3);">${matches.length}회 · 박스당 ${daysPerBox}일</div>
@@ -1243,6 +1243,32 @@ function renderSupply() {
       <div style="font-size:11px;color:var(--text3);margin-top:4px;">최근 ${lastDate} · ${lastQty}박스 구매</div>
     </div>`;
   }).join('');
+}
+
+function showSupplyHistory(label) {
+  const supplyItem = SUPPLY_ITEMS.find(s => s.label === label);
+  if (!supplyItem) return;
+  const matches = expenses
+    .filter(e => supplyItem.keywords.some(k => e.item?.includes(k)) && e.item !== '할인')
+    .sort((a,b) => b.date.localeCompare(a.date));
+
+  document.getElementById('income-detail-title').textContent = `${label} 구매 이력`;
+  document.getElementById('income-detail-content').innerHTML = `
+    <div style="margin-bottom:4px;">
+      ${matches.length ? matches.map((e,i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:13px;font-weight:500;">${e.item}</div>
+            <div style="font-size:11px;color:var(--text3);">${e.date}${e.store?' · '+e.store:''}${e.quantity?` · <strong>${e.quantity}박스</strong>`:' · <span style="color:var(--amber);">수량 미입력</span>'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:600;color:var(--red);">${fmt(e.amount)}</div>
+            ${i > 0 ? `<div style="font-size:11px;color:var(--text3);">${Math.round((new Date(matches[i-1].date)-new Date(e.date))/864e5)}일 후 재구매</div>` : ''}
+          </div>
+        </div>`).join('')
+      : '<div class="empty-state">구매 기록 없음</div>'}
+    </div>`;
+  document.getElementById('income-detail-modal').style.display = 'flex';
 }
 
 function renderSettings() {
