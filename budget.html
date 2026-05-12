@@ -63,16 +63,16 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 .btn:hover{opacity:0.85}.btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-sm{padding:6px 12px;font-size:12px}
 /* 폼 + 참조표 레이아웃 */
-.form-with-ref{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start}
+.form-with-ref{display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
 .inline-form{background:#F0F7FF;border:1.5px dashed var(--c-primary);border-radius:10px;padding:1rem}
-.ref-table-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;position:sticky;top:100px}
+.ref-table-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;position:sticky;top:100px;overflow:hidden}
 .ref-table-box .ref-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .ref-tbl{width:100%;border-collapse:collapse}
 .ref-tbl th{background:#F0F4FA;padding:5px 7px;font-size:10px;font-weight:700;color:var(--text2);text-align:left;border-bottom:1px solid var(--border)}
 .ref-tbl td{padding:5px 7px;border-bottom:1px solid rgba(0,0,0,0.04);vertical-align:top;line-height:1.4}
 .ref-tbl td:first-child{font-weight:700;color:var(--c-primary);white-space:nowrap;width:28px}
-.ref-tbl td:nth-child(2){font-weight:600;color:var(--text);white-space:nowrap;width:72px}
-.ref-tbl td:last-child{color:var(--text3);font-size:10px}
+.ref-tbl td:nth-child(2){font-weight:600;color:var(--text);white-space:nowrap;width:68px;font-size:10px}
+.ref-tbl td:last-child{color:var(--text3);font-size:10px;line-height:1.3}
 .ref-tbl tr:last-child td{border-bottom:none}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
 .fgroup{display:flex;flex-direction:column;gap:4px}
@@ -176,7 +176,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리 1.0</div>
+    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리</div>
     <div class="login-sub">계정을 입력하여 로그인하세요</div>
     <div class="login-field"><label>아이디</label><input id="lid" type="text" placeholder="아이디"/></div>
     <div class="login-field"><label>비밀번호</label><input id="lpw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -220,7 +220,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -279,9 +279,18 @@ td.amt-inc{color:var(--c-income);font-weight:600}
               </div>
               <div class="fgroup">
                 <label>구분 * <span class="shortcut-hint">(+입금 / -지출)</span></label>
-                <div class="kind-toggle">
-                  <button type="button" class="kind-btn active-exp" id="btn-exp" onclick="setKind('지출')">지출</button>
-                  <button type="button" class="kind-btn" id="btn-inc" onclick="setKind('입금')">입금</button>
+                <div style="position:relative">
+                  <input type="text" id="f-kind-text" placeholder="지출 / 입금 또는 +/-"
+                    autocomplete="off" value="지출"
+                    oninput="handleKindInput(this.value)"
+                    onkeydown="handleKindKey(event)"
+                    onfocus="showKindDrop()"
+                    onblur="setTimeout(hideKindDrop,200)"
+                    style="width:100%">
+                  <div id="kind-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--c-primary);border-radius:0 0 8px 8px;z-index:51">
+                    <div class="kind-option" id="kind-opt-exp" data-val="지출" onmousedown="selectKind('지출')" style="padding:8px 12px;font-size:13px;cursor:pointer;color:var(--c-expense);font-weight:600;background:#FEF0EC">지출</div>
+                    <div class="kind-option" id="kind-opt-inc" data-val="입금" onmousedown="selectKind('입금')" style="padding:8px 12px;font-size:13px;cursor:pointer;color:var(--c-income);font-weight:600">입금</div>
+                  </div>
                 </div>
                 <input type="hidden" id="f-kind" value="지출">
               </div>
@@ -289,7 +298,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                 <label>계정과목 * <span class="shortcut-hint">(코드 입력 가능)</span></label>
                 <div class="acct-combo">
                   <input type="text" id="f-acct-text" placeholder="코드 또는 이름" autocomplete="off"
-                    oninput="filterAcct(this.value)" onfocus="showAcctDrop()" onblur="setTimeout(hideAcctDrop,200)">
+                    oninput="filterAcct(this.value)" onfocus="showAcctDrop()" onblur="setTimeout(hideAcctDrop,200)" onkeydown="handleAcctKey(event)">
                   <input type="hidden" id="f-acct-code">
                   <div class="acct-dropdown" id="acct-dropdown"></div>
                 </div>
@@ -434,7 +443,7 @@ const ACCOUNTS=[
   {code:'103',name:'보통예금'},{code:'253',name:'미지급금'},{code:'260',name:'단기차입금'},
   {code:'901',name:'이자수익'},{code:'930',name:'잡이익'},{code:'931',name:'이자비용'},{code:'960',name:'잡손실'}
 ];
-const BRANCHES=['남동탄JLS','수원JLS','수원JLS2009','서수원JLS','운정JLS','운정JLS2','테스트JLS'];
+const BRANCHES=['남동탄 분원','수원 분원','장안 분원','서수원 분원','운정 1분원','운정 2분원'];
 let curUser=null,curBranch=null,allEntries=[],receiptB64=null,chatHistory=[];
 
 function showLoading(v){document.getElementById('loading-overlay').classList[v?'add':'remove']('show')}
@@ -476,8 +485,8 @@ function initApp(){
 function globalKey(e){
   const tag=document.activeElement.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
-  if(e.key==='+'){e.preventDefault();if(document.getElementById('form-area').style.display==='none')toggleForm();setKind('입금')}
-  if(e.key==='-'){e.preventDefault();if(document.getElementById('form-area').style.display==='none')toggleForm();setKind('지출')}
+  if(e.key==='+'){e.preventDefault();if(document.getElementById('form-area').style.display==='none')toggleForm();selectKind('입금')}
+  if(e.key==='-'){e.preventDefault();if(document.getElementById('form-area').style.display==='none')toggleForm();selectKind('지출')}
 }
 function initDates(){
   const now=new Date(),y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
@@ -494,11 +503,39 @@ function populateFilterSelect(){
 }
 function setKind(kind){
   document.getElementById('f-kind').value=kind;
-  document.getElementById('btn-exp').className='kind-btn'+(kind==='지출'?' active-exp':'');
-  document.getElementById('btn-inc').className='kind-btn'+(kind==='입금'?' active-inc':'');
+  const txt=document.getElementById('f-kind-text');
+  if(txt) txt.value=kind;
   document.getElementById('receipt-field').style.display=kind==='지출'?'flex':'none';
+  // 드롭다운 하이라이트
+  document.querySelectorAll('.kind-option').forEach(o=>{
+    const isSelected=o.dataset.val===kind;
+    o.style.background=isSelected?(kind==='지출'?'#FEF0EC':'#E1F5EE'):'#fff';
+  });
   updateQtyField();
 }
+function handleKindInput(val){
+  const v=val.trim();
+  if(v==='+'||v==='입금'||v==='입') selectKind('입금');
+  else if(v==='-'||v==='지출'||v==='지') selectKind('지출');
+  showKindDrop();
+}
+function handleKindKey(e){
+  const dd=document.getElementById('kind-dropdown');
+  if(dd.style.display==='none') return;
+  const opts=['지출','입금'];
+  const cur=document.getElementById('f-kind').value;
+  const idx=opts.indexOf(cur);
+  if(e.key==='ArrowDown'){e.preventDefault();selectKind(opts[(idx+1)%2])}
+  if(e.key==='ArrowUp'){e.preventDefault();selectKind(opts[(idx+1)%2])}
+  if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();hideKindDrop();document.getElementById('f-acct-text').focus()}
+  if(e.key==='Escape') hideKindDrop();
+}
+function selectKind(kind){
+  setKind(kind);
+  document.getElementById('f-kind-text').value=kind;
+}
+function showKindDrop(){document.getElementById('kind-dropdown').style.display='block'}
+function hideKindDrop(){document.getElementById('kind-dropdown').style.display='none'}
 function updateQtyField(){
   const code=document.getElementById('f-acct-code').value;
   const kind=document.getElementById('f-kind').value;
@@ -508,7 +545,7 @@ function filterAcct(val){
   const dd=document.getElementById('acct-dropdown');
   const v=val.trim().toLowerCase();
   const filtered=v?ACCOUNTS.filter(a=>a.code.startsWith(v)||a.name.includes(v)):ACCOUNTS;
-  dd.innerHTML=filtered.map(a=>`<div class="acct-option" onmousedown="selectAcct('${a.code}','${a.name}')"><span class="code">${a.code}</span><span>${a.name}</span></div>`).join('');
+  acctFocusIdx=-1;dd.innerHTML=filtered.map(a=>`<div class="acct-option" data-code="${a.code}" data-name="${a.name}" onmousedown="selectAcct('${a.code}','${a.name}')"><span class="code">${a.code}</span><span>${a.name}</span></div>`).join('');
   dd.classList.toggle('show',filtered.length>0);
 }
 function selectAcct(code,name){
@@ -516,6 +553,30 @@ function selectAcct(code,name){
   document.getElementById('f-acct-code').value=code;
   document.getElementById('acct-dropdown').classList.remove('show');
   updateQtyField();
+}
+let acctFocusIdx=-1;
+function handleAcctKey(e){
+  const dd=document.getElementById('acct-dropdown');
+  const opts=dd.querySelectorAll('.acct-option');
+  if(!dd.classList.contains('show')||opts.length===0) return;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    acctFocusIdx=Math.min(acctFocusIdx+1,opts.length-1);
+    opts.forEach((o,i)=>o.style.background=i===acctFocusIdx?'#E8F0FA':'');
+    opts[acctFocusIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    acctFocusIdx=Math.max(acctFocusIdx-1,0);
+    opts.forEach((o,i)=>o.style.background=i===acctFocusIdx?'#E8F0FA':'');
+    opts[acctFocusIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key==='Enter'&&acctFocusIdx>=0){
+    e.preventDefault();
+    const o=opts[acctFocusIdx];
+    selectAcct(o.dataset.code,o.dataset.name);
+    acctFocusIdx=-1;
+  } else if(e.key==='Escape'){
+    hideAcctDrop();
+  }
 }
 function showAcctDrop(){filterAcct(document.getElementById('f-acct-text').value)}
 function hideAcctDrop(){document.getElementById('acct-dropdown').classList.remove('show')}
@@ -565,6 +626,7 @@ function toggleForm(){
     document.getElementById('f-vendor').value='';
     document.getElementById('f-acct-text').value='';
     document.getElementById('f-acct-code').value='';
+    document.getElementById('f-kind-text').value='지출';
     setKind('지출');filterAcct('');
   }
 }
