@@ -243,7 +243,7 @@ tr:hover .edit-inline-btn{opacity:1}
   <div class="login-card">
     <div class="login-logo">
       <h1>정상어학원</h1>
-      <p>운영비 관리 시스템 2.0</p>
+      <p>운영비 관리 시스템</p>
     </div>
     <div class="login-err" id="login-err"></div>
     <div class="form-group">
@@ -721,11 +721,11 @@ tr:hover .edit-inline-btn{opacity:1}
         <select class="form-input" id="user-branch-input">
           <option value="namdongtanjls">남동탄</option>
           <option value="suwon_jls">수원</option>
-          <option value="suwonjls2009">수원2</option>
+          <option value="suwonjls2009">장안</option>
           <option value="seosuwonjls">서수원</option>
-          <option value="unjeongjls">운정</option>
+          <option value="unjeongjls">운정1</option>
           <option value="unjeongjls2">운정2</option>
-          <option value="testjls">테스트</option>
+          <option value="varon">바론(본사)</option>
         </select>
       </div>
       <div class="form-group">
@@ -756,11 +756,12 @@ function getGeminiKey() { return localStorage.getItem('gemini_api_key') || ''; }
 const BRANCHES = {
   namdongtanjls: '남동탄',
   suwon_jls: '수원',
-  suwonjls2009: '수원2',
+  suwonjls2009: '장안',
   seosuwonjls: '서수원',
-  unjeongjls: '운정',
+  unjeongjls: '운정1',
   unjeongjls2: '운정2',
-  testjls: '테스트'
+  varon: '바론(본사)',
+  // testjls: '테스트' // 숨김
 };
 
 // 더존 Smart A 10 계정과목 (어학원 주요 항목 is_favorite=true)
