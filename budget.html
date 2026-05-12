@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1B5EAB">
-<title>JLS 운영비 관리</title>
+<title>JLS 운영비 관리 1.0</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -189,7 +189,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리</div>
+    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리 1.0</div>
     <div class="login-sub">계정을 입력하여 로그인하세요</div>
     <div class="login-field"><label>아이디</label><input id="lid" type="text" placeholder="아이디"/></div>
     <div class="login-field"><label>비밀번호</label><input id="lpw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -713,7 +713,11 @@ function processFile(file){
     sideImg.style.display='none';
     document.getElementById('preview-side-pdf-name').textContent=file.name;
     sidePdf.style.display='flex';
-    sidePdf.href='#';
+    // blob URL로 로컬 미리보기
+    if(window._pdfBlobUrl) URL.revokeObjectURL(window._pdfBlobUrl);
+    window._pdfBlobUrl=URL.createObjectURL(file);
+    sidePdf.href=window._pdfBlobUrl;
+    sidePdf.target='_blank';
   }
 }
 function clearReceipt(){
@@ -726,6 +730,7 @@ function clearReceipt(){
   document.getElementById('preview-side-pdf').style.display='none';
   document.getElementById('preview-side-del').style.display='none';
   document.getElementById('preview-empty').style.display='flex';
+  if(window._pdfBlobUrl){URL.revokeObjectURL(window._pdfBlobUrl);window._pdfBlobUrl=null;}
 }
 function showReceiptPreview(){
   document.getElementById('modal-content').innerHTML=`<img src="${document.getElementById('receipt-img').src}" alt="영수증">`;
@@ -834,7 +839,8 @@ async function saveEntry(){
   // Storage 업로드
   if(pendingFile){
     const ext=pendingFile.name.split('.').pop();
-    const path=`${curBranch}/${date}_${Date.now()}.${ext}`;
+    const safeBranch=curBranch.replace(/\s+/g,'_');
+    const path=`${safeBranch}/${date}_${Date.now()}.${ext}`;
     const{data:upData,error:upErr}=await sb.storage.from('receipts').upload(path,pendingFile,{upsert:true});
     if(upErr){
       toast('영수증 업로드 오류: '+upErr.message);
