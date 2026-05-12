@@ -420,8 +420,8 @@ tr:hover .edit-inline-btn{opacity:1}
       <section class="section" id="section-category">
         <div class="page-header">
           <div>
-            <div class="page-title">카테고리 분석</div>
-            <div class="page-sub">기간별 지출 분석</div>
+            <div class="page-title">계정과목 분석</div>
+            <div class="page-sub">계정과목 기준 기간별 분석</div>
           </div>
         </div>
         <div class="card" style="margin-bottom:20px;">
@@ -458,31 +458,8 @@ tr:hover .edit-inline-btn{opacity:1}
         <div id="supply-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;"></div>
       </section>
 
-      <!-- AI CHATBOT -->
-      <section class="section" id="section-ai">
-        <div class="page-header">
-          <div><div class="page-title">AI 계정과목 도우미</div><div class="page-sub">어떤 계정과목을 써야 할지 물어보세요</div></div>
-        </div>
-        <div class="card" style="max-width:700px;">
-          <div class="chat-wrap">
-            <div class="chat-messages" id="chat-messages">
-              <div class="chat-msg ai">안녕하세요! 더존 Smart A 10 기준으로 계정과목 추천을 도와드려요.<br><br>예) "임대료는 어디에 잡아요?" / "인터넷 요금은?" / "직원 식대는 어떤 계정?" 이런 식으로 질문해 주세요.</div>
-            </div>
-            <div class="chat-input-row">
-              <input type="text" id="chat-input" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')sendChat()">
-              <button class="btn btn-primary" onclick="sendChat()">전송</button>
-            </div>
-          </div>
-          <div style="margin-top:12px;font-size:11px;color:var(--text3);">
-            💡 빠른 질문: 
-            <span class="store-chip" onclick="quickChat('임대료는 어떤 계정과목이에요?')">임대료</span>
-            <span class="store-chip" onclick="quickChat('직원 급여 계정과목 알려줘')">직원 급여</span>
-            <span class="store-chip" onclick="quickChat('복리후생비에 뭐가 포함돼요?')">복리후생비</span>
-            <span class="store-chip" onclick="quickChat('교재 구입비는 어떤 계정이에요?')">교재 구입</span>
-            <span class="store-chip" onclick="quickChat('인터넷 요금 계정과목은?')">인터넷요금</span>
-          </div>
-        </div>
-      </section>
+      <!-- AI CHATBOT: 플로팅으로 이동 -->
+      <section class="section" id="section-ai" style="display:none!important;"></section>
 
       <!-- SETTINGS -->
       <section class="section" id="section-settings">
@@ -550,14 +527,23 @@ tr:hover .edit-inline-btn{opacity:1}
       </div>
       <div id="ai-result-area"></div>
       <div class="form-row" style="margin-top:14px;">
-        <div class="form-group" style="margin-bottom:0;"><label class="form-label">날짜</label><input type="date" class="form-input" id="exp-date"></div>
-        <div class="form-group" style="margin-bottom:0;"><label class="form-label">카테고리</label><select class="form-input" id="exp-cat"></select></div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">날짜</label>
+          <input type="date" class="form-input" id="exp-date">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">구분</label>
+          <select class="form-input" id="exp-gubun">
+            <option value="출금">출금</option>
+            <option value="입금">입금</option>
+          </select>
+        </div>
       </div>
-      <!-- 계정과목 선택 -->
+      <!-- 계정과목 (필수) -->
       <div class="form-group" style="margin-top:14px;">
-        <label class="form-label">계정과목 <span style="color:var(--text3);font-weight:400;">(선택)</span></label>
+        <label class="form-label">계정과목 <span style="color:var(--red);font-size:11px;">필수</span></label>
         <div class="acct-search-wrap">
-          <input type="text" class="form-input" id="acct-search-input" placeholder="계정과목 이름 또는 코드 검색..." oninput="searchAcctCode(this.value)" autocomplete="off">
+          <input type="text" class="form-input" id="acct-search-input" placeholder="계정과목 이름 또는 코드 검색... (예: 복리후생, 811)" oninput="searchAcctCode(this.value)" autocomplete="off">
           <div class="acct-dropdown" id="acct-dropdown"></div>
         </div>
         <div class="acct-selected" id="acct-selected-display">
@@ -567,10 +553,16 @@ tr:hover .edit-inline-btn{opacity:1}
         <input type="hidden" id="exp-acct-code">
         <input type="hidden" id="exp-acct-name">
       </div>
-      <div class="form-group">
-        <label class="form-label">구매처</label>
-        <input type="text" class="form-input" id="exp-store" placeholder="예: 다이소, 쿠팡, 편의점...">
-        <div class="store-suggestions" id="store-suggestions"></div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">거래처</label>
+          <input type="text" class="form-input" id="exp-store" placeholder="예: 하나은행, 다이소...">
+          <div class="store-suggestions" id="store-suggestions"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">적요</label>
+          <input type="text" class="form-input" id="exp-memo" placeholder="예: 직원식대 지급, 시내교통비">
+        </div>
       </div>
       <div class="form-group">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -581,10 +573,6 @@ tr:hover .edit-inline-btn{opacity:1}
         <div style="display:flex;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
           <span style="font-size:12px;color:var(--text2);">합계: <strong id="item-total-display">₩0</strong></span>
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">메모</label>
-        <input type="text" class="form-input" id="exp-memo" placeholder="선택사항">
       </div>
     </div>
     <div class="modal-footer">
@@ -613,7 +601,7 @@ tr:hover .edit-inline-btn{opacity:1}
       </div>
       <!-- 계정과목 (입금) -->
       <div class="form-group">
-        <label class="form-label">계정과목 <span style="color:var(--text3);font-weight:400;">(선택)</span></label>
+        <label class="form-label">계정과목 <span style="color:var(--red);font-size:11px;">필수</span></label>
         <div class="acct-search-wrap">
           <input type="text" class="form-input" id="inc-acct-search" placeholder="계정과목 검색..." oninput="searchAcctCodeInc(this.value)" autocomplete="off">
           <div class="acct-dropdown" id="inc-acct-dropdown"></div>
@@ -629,7 +617,7 @@ tr:hover .edit-inline-btn{opacity:1}
         <div class="form-group" style="margin-bottom:0;"><label class="form-label">날짜</label><input type="date" class="form-input" id="inc-date"></div>
         <div class="form-group" style="margin-bottom:0;"><label class="form-label">금액</label><input type="number" class="form-input" id="inc-amount" placeholder="0"></div>
       </div>
-      <div class="form-group" style="margin-top:14px;"><label class="form-label">메모</label><input type="text" class="form-input" id="inc-memo" placeholder="선택사항"></div>
+      <div class="form-group" style="margin-top:14px;"><label class="form-label">적요</label><input type="text" class="form-input" id="inc-memo" placeholder="예: 보통예금 현금입금, 운영비 이체"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeIncomeModal()">취소</button>
@@ -982,6 +970,7 @@ function startApp() {
   currentMonth = now.getMonth() + 1;
   updateMonthDisplays();
   loadData();
+  setTimeout(updateShortcutWidgetTitle, 500);
 }
 
 function setupSidebar() {
@@ -1012,9 +1001,9 @@ function setupSidebar() {
     { id: 'dashboard', label: '월별 현황', section: '대시보드', icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>' },
     { id: 'ledger', label: '내역', section: '기록', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
     { id: 'search', label: '기간 조회·다운로드', section: null, icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
-    { id: 'category', label: '카테고리 분석', section: '분석', icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+    { id: 'category', label: '계정과목 분석', section: '분석', icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
     { id: 'supply', label: '소모품 주기', section: null, icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>' },
-    { id: 'ai', label: 'AI 계정과목 도우미', section: '도구', icon: '<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>' },
+    // AI는 플로팅 챗봇으로 이동
     { id: 'settings', label: '설정', section: '관리', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
   ];
   if (role === 'superadmin') {
@@ -1074,6 +1063,7 @@ function getBranchFilter() {
 function changeBranch(branchId) {
   activeBranchId = branchId || null;
   loadData();
+  setTimeout(updateShortcutWidgetTitle, 100);
 }
 
 function getCurrentBranchId() {
@@ -1756,8 +1746,8 @@ function openExpenseModal() {
   document.getElementById('ai-result-area').innerHTML = '';
   document.getElementById('upload-area').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p style="font-size:13px;">사진 또는 PDF 드래그 or 클릭</p><p style="font-size:11px;margin-top:4px;">JPG, PNG, PDF 지원 (자동 AI 분석)</p>`;
   clearAcctCode();
+  document.getElementById('exp-gubun').value = '출금';
   currentFileBlob = null; currentFileName = null; currentFileType = null;
-  if (categories.length) document.getElementById('exp-cat').value = categories[0].name;
   const used = [...new Set(expenses.filter(e=>e.store).map(e=>e.store))].slice(0,6);
   document.getElementById('store-suggestions').innerHTML = used.map(s=>`<span class="store-chip" onclick="document.getElementById('exp-store').value='${s}'">${s}</span>`).join('');
   addItemRow();
@@ -1837,10 +1827,7 @@ async function analyzeReceipt(file, isPdf) {
       body: JSON.stringify({
         contents:[{parts:[
           {inline_data:{mime_type:mimeType,data:base64}},
-          {text:`이 영수증에서 다음 정보를 추출해 JSON으로만 응답하세요(설명 없이):
-{"store":"상호명","date":"YYYY-MM-DD","items":[{"name":"품목명","amount":금액숫자}],"total":합계숫자,"category":"적합한카테고리"}
-카테고리 선택지: ${categories.map(c=>c.name).join(',')}
-날짜가 없으면 오늘 날짜, 항목이 없으면 영수증에서 유추`}
+          {text:'이 영수증에서 다음 정보를 추출해 JSON으로만 응답하세요(설명 없이):\n{\"store\":\"상호명\",\"date\":\"YYYY-MM-DD\",\"items\":[{\"name\":\"품목명\",\"amount\":금액숫자}],\"total\":합계숫자,\"category\":\"적합한카테고리\"}\n계정과목 선택지: '+ACCOUNT_CODES_DATA.filter(a=>a.fav).map(a=>a.code+' '+a.name).join(',')+' \n날짜가 없으면 오늘 날짜, 항목이 없으면 영수증에서 유추'}
         ]}]
       })
     });
@@ -1880,11 +1867,13 @@ async function saveExpense() {
   const memo = document.getElementById('exp-memo').value.trim();
   const account_code = document.getElementById('exp-acct-code').value ? parseInt(document.getElementById('exp-acct-code').value) : null;
   const account_name = document.getElementById('exp-acct-name').value || null;
+  const gubun = document.getElementById('exp-gubun').value;
   const itemRows = getItemRows();
   const branch_id = getCurrentBranchId();
 
   if (!date) { showToast('날짜를 입력해주세요.'); return; }
   if (!itemRows.length) { showToast('품목을 입력해주세요.'); return; }
+  if (!account_code) { showToast('계정과목을 선택해주세요. (필수)'); return; }
 
   const btn = document.getElementById('save-expense-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
@@ -1903,7 +1892,7 @@ async function saveExpense() {
         item:itemRows[i].name, amount:itemRows[i].amount,
         quantity:itemRows[i].quantity||null,
         file_url:i===0?file_url:null, file_type:i===0?file_type:null,
-        group_id, branch_id, account_code, account_name
+        group_id, branch_id, account_code, account_name, gubun
       });
       savedItems.push(row);
     }
@@ -1927,6 +1916,7 @@ async function saveIncome() {
   const branch_id = getCurrentBranchId();
 
   if (!date||!amount) { showToast('날짜와 금액을 입력해주세요.'); return; }
+  if (!account_code) { showToast('계정과목을 선택해주세요. (필수)'); return; }
   const btn = document.getElementById('save-income-btn');
   btn.disabled=true; btn.textContent='저장 중...';
   try {
@@ -2131,5 +2121,240 @@ window.addEventListener('load', () => {
   }
 });
 </script>
+
+<!-- ============================================================ -->
+<!-- FLOATING AI CHATBOT -->
+<!-- ============================================================ -->
+<style>
+.float-ai-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,.4);display:flex;align-items:center;justify-content:center;z-index:400;transition:all .2s;font-size:22px}
+.float-ai-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,99,235,.5)}
+.float-chat-panel{position:fixed;bottom:88px;right:24px;width:360px;max-height:520px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:400;display:none;flex-direction:column;overflow:hidden}
+.float-chat-panel.open{display:flex}
+.float-chat-header{padding:14px 16px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700}
+.float-chat-header button{background:none;border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1}
+.float-chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+.float-chat-msg{max-width:85%;padding:9px 12px;border-radius:10px;font-size:13px;line-height:1.55}
+.float-chat-msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.float-chat-msg.ai{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px;border:1px solid var(--border)}
+.float-chat-input{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--border)}
+.float-chat-input input{flex:1;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit}
+.float-chat-input input:focus{outline:none;border-color:var(--accent)}
+.float-chat-quick{display:flex;gap:4px;flex-wrap:wrap;padding:6px 12px 10px;border-top:1px solid var(--border)}
+.float-quick-chip{padding:3px 8px;border:1px solid var(--border2);border-radius:99px;font-size:11px;cursor:pointer;background:var(--surface);color:var(--text2);transition:all .15s;white-space:nowrap}
+.float-quick-chip:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+
+/* SHORTCUT WIDGET */
+.shortcut-widget{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:390;display:flex;flex-direction:column;gap:0}
+.shortcut-tab{writing-mode:horizontal-tb;background:var(--surface);border:1px solid var(--border);border-right:none;border-radius:var(--radius) 0 0 var(--radius);padding:8px 6px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:36px;max-width:36px}
+.shortcut-tab:hover{background:var(--accent-bg);color:var(--accent)}
+.shortcut-tab svg{width:14px;height:14px;flex-shrink:0}
+.shortcut-panel{position:fixed;right:36px;top:50%;transform:translateY(-50%);width:220px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg) 0 0 var(--radius-lg);box-shadow:var(--shadow-md);z-index:390;display:none;overflow:hidden}
+.shortcut-panel.open{display:block}
+.shortcut-panel-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700}
+.shortcut-panel-header button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1}
+.shortcut-link{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text);text-decoration:none;transition:background .15s;cursor:pointer}
+.shortcut-link:last-child{border-bottom:none}
+.shortcut-link:hover{background:var(--accent-bg);color:var(--accent)}
+.shortcut-link svg{width:13px;height:13px;flex-shrink:0;color:var(--text3)}
+.shortcut-empty{padding:16px;font-size:12px;color:var(--text3);text-align:center}
+@media(max-width:900px){.shortcut-widget{display:none}.float-chat-panel{width:calc(100vw - 48px);right:12px}}
+</style>
+
+<!-- Floating AI Button -->
+<button class="float-ai-btn" onclick="toggleFloatChat()" id="float-ai-btn" title="AI 계정과목 도우미">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+
+<!-- Float Chat Panel -->
+<div class="float-chat-panel" id="float-chat-panel">
+  <div class="float-chat-header">
+    <span>✦ AI 계정과목 도우미</span>
+    <button onclick="toggleFloatChat()">×</button>
+  </div>
+  <div class="float-chat-messages" id="float-chat-messages">
+    <div class="float-chat-msg ai">안녕하세요! 더존 Smart A 10 기준 계정과목을 도와드려요.<br>예) "직원 식대는?", "임대료 계정은?" 💡</div>
+  </div>
+  <div class="float-chat-quick">
+    <span class="float-quick-chip" onclick="floatQuickChat('임대료 계정과목은?')">임대료</span>
+    <span class="float-quick-chip" onclick="floatQuickChat('직원 식대 계정과목은?')">식대</span>
+    <span class="float-quick-chip" onclick="floatQuickChat('인터넷 요금은 어떤 계정?')">인터넷</span>
+    <span class="float-quick-chip" onclick="floatQuickChat('교재 구입비는?')">교재</span>
+    <span class="float-quick-chip" onclick="floatQuickChat('복리후생비에 뭐가 포함돼?')">복리후생</span>
+  </div>
+  <div class="float-chat-input">
+    <input type="text" id="float-chat-input" placeholder="계정과목 질문..." onkeydown="if(event.key==='Enter')sendFloatChat()">
+    <button class="btn btn-primary btn-sm" onclick="sendFloatChat()">전송</button>
+  </div>
+</div>
+
+<!-- Shortcut Widget -->
+<div class="shortcut-widget" id="shortcut-widget">
+  <div class="shortcut-tab" onclick="toggleShortcutPanel()" title="바로가기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    <span style="font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;margin-top:2px;">바로가기</span>
+  </div>
+</div>
+
+<div class="shortcut-panel" id="shortcut-panel">
+  <div class="shortcut-panel-header">
+    <span id="shortcut-panel-title">바로가기</span>
+    <button onclick="toggleShortcutPanel()">×</button>
+  </div>
+  <div id="shortcut-links-list"></div>
+  <div style="padding:8px 14px;border-top:1px solid var(--border);">
+    <button class="btn btn-sm" style="width:100%;justify-content:center;font-size:11px;" onclick="openShortcutEditModal()">+ 바로가기 추가</button>
+  </div>
+</div>
+
+<!-- Shortcut Edit Modal -->
+<div class="modal-overlay" id="shortcut-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="shortcut-modal-title">바로가기 추가</div>
+      <button class="close-btn" onclick="document.getElementById('shortcut-modal').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="shortcut-edit-idx">
+      <div class="form-group"><label class="form-label">이름</label><input type="text" class="form-input" id="shortcut-name-input" placeholder="예: 국민은행, 교재관리"></div>
+      <div class="form-group"><label class="form-label">URL</label><input type="text" class="form-input" id="shortcut-url-input" placeholder="https://..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('shortcut-modal').style.display='none'">취소</button>
+      <button class="btn btn-primary" onclick="saveShortcut()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FLOATING CHAT
+// ============================================================
+function toggleFloatChat() {
+  const panel = document.getElementById('float-chat-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) document.getElementById('float-chat-input').focus();
+}
+
+async function sendFloatChat() {
+  const input = document.getElementById('float-chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendFloatMsg('user', msg);
+  appendFloatMsg('ai', '<span class="ai-loading"><span class="spinner"></span>분석 중...</span>');
+  try {
+    const key = getGeminiKey();
+    if (!key) { 
+      const msgs = document.getElementById('float-chat-messages');
+      msgs.lastElementChild.remove();
+      appendFloatMsg('ai', 'Gemini API 키가 없어요. 설정 탭에서 키를 입력해주세요.');
+      return;
+    }
+    const ACCT_CTX = ACCOUNT_CODES_DATA.map(a=>`${a.code} ${a.name}(${a.category})`).join(', ');
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text:'더존 Smart A 10 회계 계정과목 전문가입니다. 한국 어학원 운영 비용/수입에 적합한 계정과목을 추천해주세요.\n계정과목: '+ACCT_CTX+'\n규칙: 짧고 명확하게, 코드+이름 함께 (예: 819 지급임차료), 모르면 가까운 계정 추천 후 세무사 확인 권장\n질문: '+msg }] }] })
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했어요.';
+    document.getElementById('float-chat-messages').lastElementChild.remove();
+    appendFloatMsg('ai', text.replace(/
+/g,'<br>'));
+  } catch(e) {
+    document.getElementById('float-chat-messages').lastElementChild.remove();
+    appendFloatMsg('ai', '오류: ' + e.message);
+  }
+}
+
+function appendFloatMsg(role, html) {
+  const msgs = document.getElementById('float-chat-messages');
+  const div = document.createElement('div');
+  div.className = `float-chat-msg ${role}`;
+  div.innerHTML = html;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function floatQuickChat(msg) {
+  document.getElementById('float-chat-input').value = msg;
+  const panel = document.getElementById('float-chat-panel');
+  if (!panel.classList.contains('open')) panel.classList.add('open');
+  sendFloatChat();
+}
+
+// ============================================================
+// SHORTCUT WIDGET
+// ============================================================
+function getShortcuts() {
+  const branchId = getCurrentBranchId ? getCurrentBranchId() : 'general';
+  return JSON.parse(localStorage.getItem(`shortcuts_${branchId}`) || '[]');
+}
+
+function saveShortcuts(list) {
+  const branchId = getCurrentBranchId ? getCurrentBranchId() : 'general';
+  localStorage.setItem(`shortcuts_${branchId}`, JSON.stringify(list));
+}
+
+function renderShortcutLinks() {
+  const list = getShortcuts();
+  const el = document.getElementById('shortcut-links-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="shortcut-empty">바로가기가 없어요.<br>아래 버튼으로 추가해보세요!</div>';
+    return;
+  }
+  el.innerHTML = list.map((s,i) => `
+    <div class="shortcut-link" onclick="window.open('${s.url}','_blank')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span style="flex:1;">${s.name}</span>
+      <button onclick="event.stopPropagation();deleteShortcut(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;border-radius:4px;font-size:13px;" title="삭제">×</button>
+    </div>`).join('');
+}
+
+function toggleShortcutPanel() {
+  const panel = document.getElementById('shortcut-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderShortcutLinks();
+}
+
+function openShortcutEditModal(idx) {
+  document.getElementById('shortcut-edit-idx').value = idx !== undefined ? idx : '';
+  document.getElementById('shortcut-name-input').value = idx !== undefined ? getShortcuts()[idx].name : '';
+  document.getElementById('shortcut-url-input').value = idx !== undefined ? getShortcuts()[idx].url : '';
+  document.getElementById('shortcut-modal-title').textContent = idx !== undefined ? '바로가기 수정' : '바로가기 추가';
+  document.getElementById('shortcut-modal').style.display = 'flex';
+}
+
+function saveShortcut() {
+  const idx = document.getElementById('shortcut-edit-idx').value;
+  const name = document.getElementById('shortcut-name-input').value.trim();
+  const url = document.getElementById('shortcut-url-input').value.trim();
+  if (!name || !url) { showToast('이름과 URL을 입력해주세요.'); return; }
+  const list = getShortcuts();
+  const item = { name, url: url.startsWith('http') ? url : 'https://' + url };
+  if (idx !== '') list[parseInt(idx)] = item; else list.push(item);
+  saveShortcuts(list);
+  document.getElementById('shortcut-modal').style.display = 'none';
+  renderShortcutLinks();
+  showToast('저장되었습니다.');
+}
+
+function deleteShortcut(idx) {
+  const list = getShortcuts();
+  list.splice(idx, 1);
+  saveShortcuts(list);
+  renderShortcutLinks();
+}
+
+// 분원 변경시 바로가기 패널 이름 업데이트
+function updateShortcutWidgetTitle() {
+  const el = document.getElementById('shortcut-panel-title');
+  if (el && window.BRANCHES && window.currentUser) {
+    const bn = BRANCHES[getCurrentBranchId()] || '바로가기';
+    el.textContent = bn + ' 바로가기';
+  }
+}
+</script>
+
 </body>
 </html>
