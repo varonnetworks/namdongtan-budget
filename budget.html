@@ -256,7 +256,7 @@ tr:hover .edit-inline-btn{opacity:1}
   <div class="login-card">
     <div class="login-logo">
       <h1>정상어학원</h1>
-      <p>운영비 관리 시스템 1.0</p>
+      <p>운영비 관리 시스템</p>
     </div>
     <div class="login-err" id="login-err"></div>
     <div class="form-group">
@@ -285,7 +285,7 @@ tr:hover .edit-inline-btn{opacity:1}
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
         <h1 id="sidebar-branch-name">정상어학원</h1>
-        <span>운영비 관리 시스템 1.0</span>
+        <span>운영비 관리 시스템</span>
         <div id="sidebar-role-badge"></div>
       </div>
       <!-- 바이저/수퍼어드민 분원 선택 -->
@@ -1509,7 +1509,7 @@ async function startEditSaved(cell, field, rowType, id, ...args) {
       const table = isInc ? 'incomes' : 'expenses';
       await api('PATCH', table, {date:val}, `?id=eq.${id}`);
       const arr = isInc ? incomes : expenses;
-      const item = arr.find(x=>x.id===id); if(item) item.date=val;
+      const item = arr.find(x=>String(x.id)===String(id)); if(item) item.date=val;
       renderLedger(); renderDashboard();
     };
     inp.onkeydown = e=>{ if(e.key==='Enter') inp.blur(); if(e.key==='Escape'){cell.innerHTML=orig;} };
@@ -1530,7 +1530,7 @@ async function startEditSaved(cell, field, rowType, id, ...args) {
     const table = isInc ? 'incomes' : 'expenses';
     await api('PATCH', table, {[dbField]:val}, `?id=eq.${id}`);
     const arr = isInc ? incomes : expenses;
-    const item = arr.find(x=>x.id===id); if(item) item[dbField]=val;
+    const item = arr.find(x=>String(x.id)===String(id)); if(item) item[dbField]=val;
     renderLedger(); if(isAmount) renderDashboard();
   };
   inp.onblur = save;
@@ -1559,7 +1559,7 @@ async function applySavedAcct(id, code, name, isInc) {
   const table = isInc ? 'incomes' : 'expenses';
   await api('PATCH', table, {account_code:code, account_name:name}, `?id=eq.${id}`);
   const arr = isInc ? incomes : expenses;
-  const item = arr.find(x=>x.id===id);
+  const item = arr.find(x=>String(x.id)===String(id));
   if (item) { item.account_code=code; item.account_name=name; }
   renderLedger();
 }
@@ -1575,7 +1575,7 @@ async function deleteExpSingle(id) {
 function handleLedgerClick(e) {
   const tr = e.target.closest('tr[data-id]');
   if (!tr) return;
-  const id = parseInt(tr.dataset.id);
+  const id = tr.dataset.id; // uuid - string 유지
   const rt = tr.dataset.rt; // 'inc' or 'exp'
 
   // 삭제 버튼
@@ -1588,7 +1588,7 @@ function handleLedgerClick(e) {
   // 영수증 업로드
   const uploadBtn = e.target.closest('[data-upload-id]');
   if (uploadBtn) {
-    triggerReceiptUpload(parseInt(uploadBtn.dataset.uploadId));
+    triggerReceiptUpload(uploadBtn.dataset.uploadId);
     return;
   }
 
@@ -1621,18 +1621,19 @@ function handleLedgerClick(e) {
 
 async function deleteLedgerRow(rowType, id) {
   if (!confirm('삭제할까요?')) return;
+  const sid = String(id);
   if (rowType === 'income') {
-    await api('DELETE','incomes',null,`?id=eq.${id}`);
-    incomes = incomes.filter(i=>i.id!==id);
+    await api('DELETE','incomes',null,`?id=eq.${sid}`);
+    incomes = incomes.filter(i=>String(i.id)!==sid);
   } else {
-    await api('DELETE','expenses',null,`?id=eq.${id}`);
-    expenses = expenses.filter(e=>e.id!==id);
+    await api('DELETE','expenses',null,`?id=eq.${sid}`);
+    expenses = expenses.filter(e=>String(e.id)!==sid);
   }
   renderLedger(); renderDashboard();
 }
 
 // 영수증 업로드 (저장된 행)
-function triggerReceiptUpload(expId) {
+function triggerReceiptUpload(expId) { // expId는 uuid string
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*,.pdf'; inp.style.display = 'none';
   inp.onchange = async (e) => {
@@ -1643,7 +1644,7 @@ function triggerReceiptUpload(expId) {
       const url = await uploadFileFix(file, fname);
       const ftype = file.type === 'application/pdf' ? 'pdf' : 'image';
       await api('PATCH','expenses',{file_url:url, file_type:ftype},`?id=eq.${expId}`);
-      const exp = expenses.find(e=>e.id===expId);
+      const exp = expenses.find(e=>String(e.id)===String(expId));
       if (exp) { exp.file_url=url; exp.file_type=ftype; }
       renderLedger(); showToast('영수증이 첨부되었습니다.');
     } catch(err) { showToast('업로드 실패: '+err.message); }
