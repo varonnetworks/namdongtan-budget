@@ -500,6 +500,20 @@ tr:hover .edit-inline-btn{opacity:1}
           </button>
         </div>
         <div class="card" style="max-width:480px;"><div id="supply-settings-list"></div></div>
+        
+        <div class="page-header" style="margin-top:24px;">
+          <div><div class="page-title" style="font-size:16px;">AI 설정</div><div class="page-sub">Gemini API 키 (로컬 저장 — GitHub에 올라가지 않음)</div></div>
+        </div>
+        <div class="card" style="max-width:480px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Gemini API Key</label>
+            <div style="display:flex;gap:8px;">
+              <input type="password" class="form-input" id="gemini-key-input" placeholder="AIzaSy..." style="flex:1;">
+              <button class="btn btn-primary" onclick="saveGeminiKey()">저장</button>
+            </div>
+            <div id="gemini-key-status" style="font-size:11px;margin-top:6px;color:var(--text3);"></div>
+          </div>
+        </div>
       </section>
 
       <!-- ADMIN (superadmin only) -->
@@ -737,7 +751,7 @@ tr:hover .edit-inline-btn{opacity:1}
 const SUPABASE_URL = 'https://ktizqdrhndefvoeltjko.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0aXpxZHJobmRlZnZvZWx0amtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTcxOTcsImV4cCI6MjA5MzY3MzE5N30.p3v9VZSgTr_ngL-QN8L_7hoORk1auTqMk8l6NWuE0Yk';
 const BUCKET = 'receipts';
-const GEMINI_API_KEY = 'AIzaSyDOtS7KAZ2TfeNZHz6tpgHceCCvrqyS5nI'; // ← 여기에 Gemini API 키 입력
+function getGeminiKey() { return localStorage.getItem('gemini_api_key') || ''; }
 
 const BRANCHES = {
   namdongtanjls: '남동탄',
@@ -1080,6 +1094,7 @@ function showSection(id, el) {
   if (el) el.classList.add('active');
   if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
   if (id === 'admin') renderAdminUsers();
+  if (id === 'settings') setTimeout(renderGeminiKeyStatus, 50);
 }
 
 function changeMonth(delta) {
@@ -1646,7 +1661,7 @@ async function sendChat() {
   appendChatMsg('ai', '<span class="ai-loading"><span class="spinner"></span>분석 중...</span>');
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${getGeminiKey()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1815,7 +1830,7 @@ async function analyzeReceipt(file, isPdf) {
       mimeType = file.type;
     }
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${getGeminiKey()}`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -2073,6 +2088,25 @@ function showLoading(show) {
     el.innerHTML='<div class="spinner" style="width:28px;height:28px;border-width:3px;"></div><p style="font-size:13px;color:var(--text2);">불러오는 중...</p>';
     document.body.appendChild(el);
   } else if (!show&&el) el.remove();
+}
+
+function saveGeminiKey() {
+  const key = document.getElementById("gemini-key-input").value.trim();
+  if (!key) { showToast("키를 입력해주세요."); return; }
+  localStorage.setItem("gemini_api_key", key);
+  document.getElementById("gemini-key-input").value = "";
+  document.getElementById("gemini-key-status").textContent = "✓ 저장되었습니다. (로컬에만 저장됨)";
+  document.getElementById("gemini-key-status").style.color = "var(--green)";
+  showToast("Gemini API 키가 저장되었습니다.");
+}
+
+function renderGeminiKeyStatus() {
+  const key = getGeminiKey();
+  const el = document.getElementById("gemini-key-status");
+  if (el) {
+    el.textContent = key ? "✓ 키가 저장되어 있습니다." : "키가 없습니다. 입력 후 저장해주세요.";
+    el.style.color = key ? "var(--green)" : "var(--amber)";
+  }
 }
 
 function showToast(msg) {
