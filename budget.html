@@ -1002,7 +1002,7 @@ async function loadSupplyCycle(){
     const purchases=(ents||[]).filter(e=>(e.memo||'').includes(s.name));
     if(purchases.length===0){
       return `<div class="card supply-item">
-        <div style="flex:1"><div class="supply-name">${s.name} <span style="font-size:11px;color:var(--text3)">(단위: ${s.unit})</span></div>
+        <div style="flex:1"><div class="supply-name" style="font-size:15px">${s.name} <span style="font-size:11px;color:var(--text3)">(단위: ${s.unit})</span></div>
         <div class="supply-meta">구매 이력 없음 — 소모품비(830) 지출 시 적요에 품명을 포함하세요</div></div>
         <span class="cycle-badge cycle-warn">이력없음</span>
       </div>`;
@@ -1025,26 +1025,30 @@ async function loadSupplyCycle(){
       let daysDiff='';
       if(nextP){
         const d=Math.round((new Date(p.date)-new Date(nextP.date))/86400000);
-        daysDiff=`<span style="font-size:10px;color:var(--text3);margin-left:6px">→ ${Math.abs(d)}일 후 재구매</span>`;
+        daysDiff=`<span style="font-size:12px;color:var(--text3);margin-left:6px">→ ${Math.abs(d)}일 후 재구매</span>`;
       }
-      return `<tr style="font-size:11px">
-        <td style="padding:4px 8px;color:var(--text2)">${p.date}</td>
-        <td style="padding:4px 8px;text-align:center;font-weight:600">${p.qty||1}${s.unit}</td>
-        <td style="padding:4px 8px;color:var(--text3)">${p.amt?p.amt.toLocaleString()+'원':'-'}${daysDiff}</td>
+      return `<tr>
+        <td style="padding:8px 12px;font-size:14px;color:var(--text);border-bottom:1px solid rgba(0,0,0,0.04);width:140px">${p.date}</td>
+        <td style="padding:8px 12px;font-size:14px;font-weight:700;color:var(--c-primary);border-bottom:1px solid rgba(0,0,0,0.04);width:90px;text-align:center">${p.qty||1}${s.unit}</td>
+        <td style="padding:8px 12px;font-size:14px;color:var(--text2);border-bottom:1px solid rgba(0,0,0,0.04)">${p.amt?p.amt.toLocaleString()+'원':'-'}${daysDiff}</td>
       </tr>`;
     }).join('');
-    const historyHtml=`<div id="hist-${s.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">최근 구매이력 (최대 5건)</div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="font-size:10px;color:var(--text3)"><th style="padding:3px 8px;text-align:left">날짜</th><th style="padding:3px 8px;text-align:center">수량</th><th style="padding:3px 8px;text-align:left">금액</th></tr></thead>
-        <tbody>${historyRows||'<tr><td colspan="3" style="padding:8px;color:var(--text3);font-size:11px">이력 없음</td></tr>'}</tbody>
+    const historyHtml=`<div id="hist-${s.id}" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">최근 구매이력 (최대 5건)</div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <thead><tr style="background:#F0F4FA">
+          <th style="padding:8px 12px;font-size:13px;color:var(--text2);text-align:left;width:140px">날짜</th>
+          <th style="padding:8px 12px;font-size:13px;color:var(--text2);text-align:center;width:90px">수량</th>
+          <th style="padding:8px 12px;font-size:13px;color:var(--text2);text-align:left">금액 / 다음 구매</th>
+        </tr></thead>
+        <tbody>${historyRows||'<tr><td colspan="3" style="padding:12px;color:var(--text3);font-size:13px">이력 없음</td></tr>'}</tbody>
       </table>
     </div>`;
     return `<div class="card supply-item" style="flex-direction:column;align-items:stretch;cursor:pointer" onclick="toggleSupplyHist(${s.id})">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="flex:1">
-          <div class="supply-name">${s.name} <span style="font-size:11px;color:var(--text3)">(단위: ${s.unit})</span></div>
-          <div class="supply-meta" style="margin-top:4px">
+          <div class="supply-name" style="font-size:15px">${s.name} <span style="font-size:11px;color:var(--text3)">(단위: ${s.unit})</span></div>
+          <div class="supply-meta" style="margin-top:6px;font-size:13px">
             ${s.unit}당 평균 ${daysPerUnit}일 소진 · 총 ${totalQty}${s.unit} 구매 · ${purchases.length}회
             ${remaining>0?`· <span style="color:var(--c-income)">약 ${remaining}일 후 소진 예상</span>`:`· <span style="color:var(--c-expense)">소진 예정일 ${Math.abs(remaining)}일 초과</span>`}
           </div>
