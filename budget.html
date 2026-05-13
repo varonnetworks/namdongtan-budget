@@ -975,33 +975,22 @@ function processFile(file){
   pendingFile=file;
   document.getElementById('upload-label').textContent=file.name;
   document.getElementById('upload-area').classList.add('has-file');
-  document.getElementById('receipt-filename').textContent=file.name;
-  // 사이드 미리보기
-  const sideImg=document.getElementById('preview-side-img');
-  const sidePdf=document.getElementById('preview-side-pdf');
-  const sideDel=document.getElementById('preview-side-del');
-  document.getElementById('preview-empty').style.display='none';
-  sideDel.style.display='block';
+  // 파일명 표시
+  const fn=document.getElementById('receipt-filename');
+  if(fn){fn.textContent=file.name;fn.style.display='block';}
+  // 버튼 표시
   const abEl=document.getElementById('analyze-btns');
   if(abEl) abEl.style.display='flex';
   const acEl=document.getElementById('receipt-action-btns');
   if(acEl) acEl.style.display='flex';
-  const fn=document.getElementById('receipt-filename');
-  if(fn){fn.textContent=file.name;fn.style.display='block';}
   if(file.type.startsWith('image/')){
     const reader=new FileReader();
     reader.onload=e=>{
-      sideImg.src=e.target.result;
-      sideImg.style.display='block';
-      sidePdf.style.display='none';
       document.getElementById('receipt-img').src=e.target.result;
       document.getElementById('receipt-preview').style.display='flex';
     };
     reader.readAsDataURL(file);
   } else {
-    sideImg.style.display='none';
-    document.getElementById('preview-side-pdf-name').textContent=file.name;
-    sidePdf.style.display='flex';
     // blob URL로 로컬 미리보기
     if(window._pdfBlobUrl) URL.revokeObjectURL(window._pdfBlobUrl);
     window._pdfBlobUrl=URL.createObjectURL(file);
