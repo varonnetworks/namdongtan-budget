@@ -337,7 +337,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 2.0</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -1297,9 +1297,9 @@ async function loadStats(){
     const diffColor=diff>0?'var(--c-expense)':diff<0?'var(--c-income)':'var(--text3)';
     const diffStr=diff===0?'변동없음':`${diff>0?'+':''}${diff.toLocaleString()}원`;
     const arrow=diff>0?'↑':diff<0?'↓':'─';
-    return `<div style="display:flex;align-items:center;padding:8px 12px;border-radius:8px;background:#F8F9FC;margin-bottom:6px">
-      <span style="flex:1;font-size:13px;font-weight:600">${name}</span>
-      <span style="font-size:15px;font-weight:800;color:${diffColor}">${arrow} ${diffStr}</span>
+    return `<div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${name}</span>
+      <span style="font-size:13px;font-weight:700;color:${diffColor}">${arrow} ${diffStr}</span>
     </div>`;
   }).join('');
   if(compareRows){
@@ -1323,12 +1323,12 @@ async function loadStats(){
     <div class="chart-bar-wrap">${sorted.map(([name,val])=>{
       const bg=acctColors[name]||'#9898b0';
       const pct=totalExp>0?Math.round(val/totalExp*100):0;
-      return `<div class="bar-row" onclick="showStatsDetail('${name}')" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:13px;font-weight:600;color:var(--text)">${name}</span>
-          <span style="font-size:12px;color:var(--text2)">${val.toLocaleString()}원 <span style="color:var(--text3)">· ${pct}%</span></span>
+      return `<div onclick="showStatsDetail('${name}')" style="cursor:pointer;margin-bottom:8px">
+        <div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
+          <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${name}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text2)">${val.toLocaleString()}원 <span style="color:var(--text3);font-size:11px">· ${pct}%</span></span>
         </div>
-        <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${bg}"></div></div>
+        <div class="bar-track" style="height:6px;margin-top:4px"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${bg}"></div></div>
       </div>`;
     }).join('')}${sorted.length===0?'<div class="empty">데이터 없음</div>':''}</div>`;
 
@@ -1349,9 +1349,14 @@ async function loadStats(){
     const topPct=topSub?Math.round(topSub[1]/sub830Total*100):0;
     const topMsg=topSub?`가장 큰 비중: <strong>${topSub[0]}</strong> ${topPct}%`:'';
     // 누적 막대
+    const subShortNames={'인쇄·출력용품':'인쇄용품','위생·생활용품':'생활용품','사무용품':'사무용품','수업용품':'수업용품','기타소모품':'기타','미분류':'기타'};
     const stackedBar=subEntries.map(([k,v])=>{
       const w=Math.round(v/sub830Total*100);
-      const label=w>=8?`<span style="font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${w*0.9}px;display:inline-block;vertical-align:middle;padding:0 4px">${k.replace('·출력용품','').replace('·생활용품','').replace('소모품','')} ${w}%</span>`:'';
+      const pctStr=w+'%';
+      const shortBase=subShortNames[k]||k;
+      const maxName=9-pctStr.length-1;
+      const name=shortBase.length>maxName?shortBase.slice(0,maxName):shortBase;
+      const label=w>=5?`<span style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;padding:0 4px">${name} ${pctStr}</span>`:'';
       return `<div style="width:${w}%;background:${subColors[k]||'#ccc'};height:100%;display:inline-flex;align-items:center;justify-content:center;overflow:hidden" title="${k}: ${v.toLocaleString()}원 (${w}%)">${label}</div>`;
     }).join('');
     const legend=subEntries.map(([k])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:${subColors[k]||'#ccc'};display:inline-block"></span>${k}</span>`).join('');
