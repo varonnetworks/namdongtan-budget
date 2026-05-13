@@ -168,8 +168,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 #mobile-header{display:none}
 #mobile-menu{display:none;position:fixed;top:10px;left:10px;z-index:100;background:var(--c-primary);color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:18px}
 @media(max-width:1100px){
-  .form-with-ref{grid-template-columns:1fr 260px}
-  .preview-side{display:none!important}
+  .form-with-ref{grid-template-columns:1fr 300px}
 }
 @media(max-width:900px){
   .form-with-ref{grid-template-columns:1fr}
@@ -985,10 +984,10 @@ function processFile(file){
   sideDel.style.display='block';
   const abEl=document.getElementById('analyze-btns');
   if(abEl) abEl.style.display='flex';
+  const acEl=document.getElementById('receipt-action-btns');
+  if(acEl) acEl.style.display='flex';
   const fn=document.getElementById('receipt-filename');
   if(fn){fn.textContent=file.name;fn.style.display='block';}
-  const rp=document.getElementById('receipt-preview');
-  if(rp) rp.style.display='flex';
   if(file.type.startsWith('image/')){
     const reader=new FileReader();
     reader.onload=e=>{
