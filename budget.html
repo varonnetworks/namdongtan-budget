@@ -523,10 +523,11 @@ td.amt-inc{color:var(--c-income);font-weight:600}
       </div>
       <!-- 요약 카드 -->
       <div class="stat-grid" id="stats-summary"></div>
-      <!-- 전월 대비 -->
-      <div id="stats-compare" style="display:none;margin-bottom:1rem"></div>
-      <!-- 섹션1: 계정과목별 막대 -->
-      <div id="stats-charts"></div>
+      <!-- 이전기간대비 + 계정과목별 지출 나란히 -->
+      <div id="stats-top-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem;margin-top:1rem">
+        <div id="stats-compare" style="display:none;background:#F8F9FC;border-radius:10px;padding:14px;border:1px solid var(--border)"></div>
+        <div id="stats-charts" style="background:#F8F9FC;border-radius:10px;padding:14px;border:1px solid var(--border)"></div>
+      </div>
       <!-- 섹션2: 소모품비 누적 막대 -->
       <div id="stats-sub830" style="display:none;margin-top:1rem"></div>
       <!-- 섹션3: 상세 내역 -->
@@ -1133,14 +1134,14 @@ async function loadStats(){
   }).join('');
   if(compareRows){
     compareSec.style.display='block';
-    document.getElementById('stats-top-row').style.gridTemplateColumns='1fr 1fr';
+    const tr=document.getElementById('stats-top-row');if(tr)tr.style.gridTemplateColumns='1fr 1fr';
     compareSec.innerHTML=`
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">계정별 증감</div>
       <div style="font-size:10px;color:var(--text3);margin-bottom:10px">이전 기간 대비 증가 항목</div>
       ${compareRows}`;
   } else {
     compareSec.style.display='none';
-    document.getElementById('stats-top-row').style.gridTemplateColumns='1fr';
+    const tr2=document.getElementById('stats-top-row');if(tr2)tr2.style.gridTemplateColumns='1fr';
   }
 
   // ③ 계정과목별 막대 (항목명 옆에 금액·비율)
