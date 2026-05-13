@@ -1059,30 +1059,37 @@ async function deleteEntry(id){
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
 function setLedgerPeriod(dir){
-  const now=new Date();
-  let y=now.getFullYear(),m=now.getMonth();
+  const fromEl=document.getElementById('f-from');
+  const toEl=document.getElementById('f-to');
+  // 현재 조회 기간의 from 기준으로 월 이동
+  const base=new Date(fromEl.value||new Date());
+  let y=base.getFullYear(),m=base.getMonth();
   if(dir==='prev') m-=1;
   if(dir==='next') m+=1;
+  if(dir==='this'){y=new Date().getFullYear();m=new Date().getMonth();}
   if(m<0){m=11;y--;}
   if(m>11){m=0;y++;}
   const mm=String(m+1).padStart(2,'0');
   const last=new Date(y,m+1,0).getDate().toString().padStart(2,'0');
-  document.getElementById('f-from').value=`${y}-${mm}-01`;
-  document.getElementById('f-to').value=`${y}-${mm}-${last}`;
+  fromEl.value=`${y}-${mm}-01`;
+  toEl.value=`${y}-${mm}-${last}`;
   loadEntries();
 }
 
 function setStatsPeriod(dir){
-  const now=new Date();
-  let y=now.getFullYear(),m=now.getMonth();
+  const fromEl=document.getElementById('s-from');
+  const toEl=document.getElementById('s-to');
+  const base=new Date(fromEl.value||new Date());
+  let y=base.getFullYear(),m=base.getMonth();
   if(dir==='prev') m-=1;
   if(dir==='next') m+=1;
+  if(dir==='this'){y=new Date().getFullYear();m=new Date().getMonth();}
   if(m<0){m=11;y--;}
   if(m>11){m=0;y++;}
   const mm=String(m+1).padStart(2,'0');
   const last=new Date(y,m+1,0).getDate().toString().padStart(2,'0');
-  document.getElementById('s-from').value=`${y}-${mm}-01`;
-  document.getElementById('s-to').value=`${y}-${mm}-${last}`;
+  fromEl.value=`${y}-${mm}-01`;
+  toEl.value=`${y}-${mm}-${last}`;
   loadStats();
 }
 
