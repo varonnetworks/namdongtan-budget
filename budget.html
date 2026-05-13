@@ -168,7 +168,8 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 #mobile-header{display:none}
 #mobile-menu{display:none;position:fixed;top:10px;left:10px;z-index:100;background:var(--c-primary);color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:18px}
 @media(max-width:1100px){
-  .form-with-ref{grid-template-columns:1fr 300px}
+  .form-with-ref{grid-template-columns:1fr 260px}
+  .preview-side{display:none!important}
 }
 @media(max-width:900px){
   .form-with-ref{grid-template-columns:1fr}
@@ -192,12 +193,14 @@ td.amt-inc{color:var(--c-income);font-weight:600}
   .stat-grid{grid-template-columns:1fr 1fr}
   /* 테이블 → 카드형 */
   .tbl-wrap table thead{display:none}
-  .tbl-wrap table tbody tr{display:flex;flex-direction:column;background:#fff;border-radius:10px;margin-bottom:8px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow)}
-  .tbl-wrap table tbody td{border:none;padding:3px 0;font-size:13px;display:flex;align-items:center;gap:6px}
-  .tbl-wrap table tbody td:empty{display:none}
-  .tbl-wrap table tbody td:before{content:attr(data-label);font-size:11px;color:var(--text3);min-width:52px;flex-shrink:0}
+  .tbl-wrap table{min-width:unset;width:100%}
   .tbl-wrap{overflow-x:unset}
-  .tbl-wrap table{min-width:unset}
+  .tbl-wrap table tbody tr{display:block;background:#fff;border-radius:10px;margin-bottom:8px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow);width:100%}
+  .tbl-wrap table tbody td{display:flex;justify-content:space-between;align-items:center;border:none;padding:5px 0;font-size:13px;border-bottom:1px solid rgba(0,0,0,0.04)}
+  .tbl-wrap table tbody td:last-child{border-bottom:none;padding-top:8px;gap:6px;justify-content:flex-end}
+  .tbl-wrap table tbody td:before{content:attr(data-label);font-size:11px;color:var(--text3);font-weight:600;flex-shrink:0}
+  .tbl-wrap table tbody td:last-child:before{display:none}
+  .tbl-wrap table tbody td.amt-exp,.tbl-wrap table tbody td.amt-inc{font-size:15px;font-weight:800}
   /* 페이지 헤더 숨김 (탭바로 대체) */
   .page-header{font-size:15px;margin-bottom:0.75rem}
   /* 상단 모바일 헤더 */
@@ -337,7 +340,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -454,18 +457,18 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                 <!-- 파일명 -->
                 <div id="receipt-filename" style="font-size:11px;color:var(--text2);display:none"></div>
                 <!-- 1줄: 자동입력 + 품목분리 -->
-                <div id="analyze-btns" style="display:none;gap:5px">
-                  <button type="button" id="analyze-btn" onclick="analyzeReceipt('single')" style="font-size:11px;color:#fff;background:var(--c-primary);border:none;border-radius:6px;padding:6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;white-space:nowrap"><i class="ti ti-sparkles" style="font-size:12px"></i> 자동입력</button>
-                  <button type="button" id="analyze-multi-btn" onclick="analyzeReceipt('multi')" style="font-size:11px;color:#fff;background:#1D9E75;border:none;border-radius:6px;padding:6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;white-space:nowrap"><i class="ti ti-list-details" style="font-size:12px"></i> 품목분리</button>
+                <div id="analyze-btns" style="display:none;gap:6px">
+                  <button type="button" id="analyze-btn" onclick="analyzeReceipt('single')" style="font-size:12px;color:#fff;background:var(--c-primary);border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-sparkles" style="font-size:13px"></i> 자동입력</button>
+                  <button type="button" id="analyze-multi-btn" onclick="analyzeReceipt('multi')" style="font-size:12px;color:#fff;background:#1D9E75;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-list-details" style="font-size:13px"></i> 품목분리</button>
                 </div>
                 <!-- 2줄: 미리보기 + 삭제 -->
-                <div id="receipt-action-btns" style="display:none;gap:5px">
-                  <button type="button" onclick="showReceiptPreview()" style="font-size:11px;color:var(--c-primary);background:#E8F0FA;border:none;border-radius:6px;padding:6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;white-space:nowrap"><i class="ti ti-eye" style="font-size:12px"></i> 미리보기</button>
-                  <button type="button" onclick="clearReceipt()" style="font-size:11px;color:var(--c-accent);background:#FEF0EC;border:none;border-radius:6px;padding:6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;white-space:nowrap"><i class="ti ti-trash" style="font-size:12px"></i> 삭제</button>
+                <div id="receipt-preview" style="display:none;gap:6px">
+                  <button type="button" onclick="showReceiptPreview()" style="font-size:12px;color:var(--c-primary);background:#E8F0FA;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-eye" style="font-size:13px"></i> 미리보기</button>
+                  <button type="button" onclick="clearReceipt()" style="font-size:12px;color:var(--c-accent);background:#FEF0EC;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-trash" style="font-size:13px"></i> 삭제</button>
                 </div>
               </div>
             </div>
-                        <div class="fgroup"><label>적요</label><textarea id="f-memo-in" rows="2" placeholder="거래 내용 메모 (소모품명 포함 시 주기 분석에 활용됨)"></textarea></div>
+            <div class="fgroup"><label>적요</label><textarea id="f-memo-in" rows="2" placeholder="거래 내용 메모 (소모품명 포함 시 주기 분석에 활용됨)"></textarea></div>
             <!-- 품목분리 결과 -->
             <div id="multi-items-box" style="display:none;margin-top:12px;border:1px solid var(--c-income);border-radius:8px;overflow:hidden">
               <div style="background:#E1F5EE;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
@@ -625,7 +628,7 @@ const BRANCHES=['남동탄 분원','수원 분원','장안 분원','서수원 �
 let curUser=null,curBranch=null,allEntries=[],receiptB64=null,pendingFile=null,chatHistory=[];
 
 function showLoading(v){document.getElementById('loading-overlay').classList[v?'add':'remove']('show')}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),5000)}
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   const ov=document.getElementById('sidebar-overlay');
@@ -975,14 +978,12 @@ function processFile(file){
   pendingFile=file;
   document.getElementById('upload-label').textContent=file.name;
   document.getElementById('upload-area').classList.add('has-file');
-  // 파일명 표시
-  const fn=document.getElementById('receipt-filename');
-  if(fn){fn.textContent=file.name;fn.style.display='block';}
-  // 버튼 표시
   const abEl=document.getElementById('analyze-btns');
   if(abEl) abEl.style.display='flex';
   const acEl=document.getElementById('receipt-action-btns');
   if(acEl) acEl.style.display='flex';
+  const fn=document.getElementById('receipt-filename');
+  if(fn){fn.textContent=file.name;fn.style.display='block';}
   if(file.type.startsWith('image/')){
     const reader=new FileReader();
     reader.onload=e=>{
@@ -1012,25 +1013,17 @@ function clearReceipt(){
   if(window._previewBlobUrl){URL.revokeObjectURL(window._previewBlobUrl);window._previewBlobUrl=null;}
 }
 function showReceiptPreview(){
-  const img=document.getElementById('receipt-img');
-  let src=img?img.src:'';
-  if(!src||src===window.location.href){
-    // PDF blob URL
-    if(window._pdfBlobUrl) src=window._pdfBlobUrl;
-  }
-  if(!src) return;
-  const isPdf=pendingFile&&pendingFile.type==='application/pdf';
-  document.getElementById('modal-content').innerHTML=isPdf
-    ?`<p style="font-size:12px;color:var(--text3);margin-bottom:8px">${pendingFile.name}</p><a href="${src}" target="_blank" style="color:var(--c-primary);font-size:14px"><i class="ti ti-external-link"></i> PDF 새 탭에서 열기</a>`
-    :`<img src="${src}" alt="영수증">`;
-  document.getElementById('modal-overlay').classList.add('open');
+  if(!pendingFile){toast('첨부된 파일이 없습니다');return}
+  if(window._previewBlobUrl) URL.revokeObjectURL(window._previewBlobUrl);
+  window._previewBlobUrl=URL.createObjectURL(pendingFile);
+  window.open(window._previewBlobUrl,'_blank');
 }
 function toggleForm(){
   const f=document.getElementById('form-area');
   const open=f.style.display==='none';
   f.style.display=open?'block':'none';
   if(open){
-    // 폼 완전 초기화
+    clearReceipt();
     document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('f-amt').value='';
     document.getElementById('f-qty').value='1';
@@ -1041,21 +1034,6 @@ function toggleForm(){
     document.getElementById('f-kind-text').value='지출';
     setKind('지출');filterAcct('');
     document.getElementById('sub-acct-field').style.display='none';
-    // 영수증 초기화
-    pendingFile=null;
-    if(window._previewBlobUrl){URL.revokeObjectURL(window._previewBlobUrl);window._previewBlobUrl=null;}
-    if(window._pdfBlobUrl){URL.revokeObjectURL(window._pdfBlobUrl);window._pdfBlobUrl=null;}
-    document.getElementById('f-receipt').value='';
-    document.getElementById('upload-label').textContent='클릭 또는 드래그 (JPG·PNG·PDF)';
-    document.getElementById('upload-area').classList.remove('has-file');
-    const fn=document.getElementById('receipt-filename');
-    if(fn){fn.textContent='';fn.style.display='none';}
-    const abEl=document.getElementById('analyze-btns');
-    if(abEl) abEl.style.display='none';
-    const acEl=document.getElementById('receipt-action-btns');
-    if(acEl) acEl.style.display='none';
-    const rp=document.getElementById('receipt-preview');
-    if(rp) rp.style.display='none';
   }
 }
 async function loadEntries(){
@@ -1072,7 +1050,16 @@ async function loadEntries(){
   const{data,error}=await q;
   showLoading(false);
   if(error){toast('로드 오류: '+error.message);return}
-  allEntries=data||[];filterLocal();
+  allEntries=data||[];
+  // 전체 기간 시재 계산 (기간 필터 없이)
+  sb.from('entries').select('amt,kind').eq('branch',curBranch).then(({data:all})=>{
+    if(all){
+      const allInc=(all||[]).filter(e=>e.kind==='입금').reduce((s,e)=>s+e.amt,0);
+      const allExp=(all||[]).filter(e=>e.kind==='지출').reduce((s,e)=>s+e.amt,0);
+      window._sijaeBalance=allInc-allExp;
+    }
+    filterLocal();
+  });
 }
 function filterLocal(){
   const memo=document.getElementById('f-memo')?.value?.toLowerCase()||'';
@@ -1087,6 +1074,7 @@ function renderLedger(data){
     <div class="stat"><div class="stat-label">지출 합계</div><div class="stat-val exp">-${totalExp.toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">입금 합계</div><div class="stat-val inc">+${totalInc.toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">순액</div><div class="stat-val" style="color:${totalInc-totalExp>=0?'var(--c-income)':'var(--c-expense)'}">${(totalInc-totalExp>=0?'+':'')}${(totalInc-totalExp).toLocaleString()}원</div></div>
+    <div class="stat"><div class="stat-label">현재시재 <span style="font-size:9px;color:var(--text3)">(전체)</span></div><div class="stat-val" style="color:${(window._sijaeBalance||0)>=0?'var(--c-income)':'var(--c-expense)'}">${((window._sijaeBalance||0)>=0?'+':'')}${(window._sijaeBalance||0).toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">건수</div><div class="stat-val">${data.length}건</div></div>`;
   const tbody=document.getElementById('ledger-body');
   tbody.innerHTML='';
@@ -1309,9 +1297,9 @@ async function loadStats(){
     const diffColor=diff>0?'var(--c-expense)':diff<0?'var(--c-income)':'var(--text3)';
     const diffStr=diff===0?'변동없음':`${diff>0?'+':''}${diff.toLocaleString()}원`;
     const arrow=diff>0?'↑':diff<0?'↓':'─';
-    return `<div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
-      <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${name}</span>
-      <span style="font-size:13px;font-weight:700;color:${diffColor}">${arrow} ${diffStr}</span>
+    return `<div style="display:flex;align-items:center;padding:8px 12px;border-radius:8px;background:#F8F9FC;margin-bottom:6px">
+      <span style="flex:1;font-size:13px;font-weight:600">${name}</span>
+      <span style="font-size:15px;font-weight:800;color:${diffColor}">${arrow} ${diffStr}</span>
     </div>`;
   }).join('');
   if(compareRows){
@@ -1335,12 +1323,12 @@ async function loadStats(){
     <div class="chart-bar-wrap">${sorted.map(([name,val])=>{
       const bg=acctColors[name]||'#9898b0';
       const pct=totalExp>0?Math.round(val/totalExp*100):0;
-      return `<div onclick="showStatsDetail('${name}')" style="cursor:pointer;margin-bottom:8px">
-        <div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
-          <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${name}</span>
-          <span style="font-size:13px;font-weight:700;color:var(--text2)">${val.toLocaleString()}원 <span style="color:var(--text3);font-size:11px">· ${pct}%</span></span>
+      return `<div class="bar-row" onclick="showStatsDetail('${name}')" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${name}</span>
+          <span style="font-size:12px;color:var(--text2)">${val.toLocaleString()}원 <span style="color:var(--text3)">· ${pct}%</span></span>
         </div>
-        <div class="bar-track" style="height:6px;margin-top:4px"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${bg}"></div></div>
+        <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${bg}"></div></div>
       </div>`;
     }).join('')}${sorted.length===0?'<div class="empty">데이터 없음</div>':''}</div>`;
 
@@ -1361,14 +1349,9 @@ async function loadStats(){
     const topPct=topSub?Math.round(topSub[1]/sub830Total*100):0;
     const topMsg=topSub?`가장 큰 비중: <strong>${topSub[0]}</strong> ${topPct}%`:'';
     // 누적 막대
-    const subShortNames={'인쇄·출력용품':'인쇄용품','위생·생활용품':'생활용품','사무용품':'사무용품','수업용품':'수업용품','기타소모품':'기타','미분류':'기타'};
     const stackedBar=subEntries.map(([k,v])=>{
       const w=Math.round(v/sub830Total*100);
-      const pctStr=w+'%';
-      const shortBase=subShortNames[k]||k;
-      const maxName=9-pctStr.length-1;
-      const name=shortBase.length>maxName?shortBase.slice(0,maxName):shortBase;
-      const label=w>=5?`<span style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;padding:0 4px">${name} ${pctStr}</span>`:'';
+      const label=w>=8?`<span style="font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${w*0.9}px;display:inline-block;vertical-align:middle;padding:0 4px">${k.replace('·출력용품','').replace('·생활용품','').replace('소모품','')} ${w}%</span>`:'';
       return `<div style="width:${w}%;background:${subColors[k]||'#ccc'};height:100%;display:inline-flex;align-items:center;justify-content:center;overflow:hidden" title="${k}: ${v.toLocaleString()}원 (${w}%)">${label}</div>`;
     }).join('');
     const legend=subEntries.map(([k])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:${subColors[k]||'#ccc'};display:inline-block"></span>${k}</span>`).join('');
