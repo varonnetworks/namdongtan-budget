@@ -252,7 +252,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리</div>
+    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리 1.0</div>
     <div class="login-sub">계정을 입력하여 로그인하세요</div>
     <div class="login-field"><label>아이디</label><input id="lid" type="text" placeholder="아이디"/></div>
     <div class="login-field"><label>비밀번호</label><input id="lpw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -338,7 +338,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -520,8 +520,15 @@ td.amt-inc{color:var(--c-income);font-weight:600}
         <input type="date" id="s-from"><span style="color:var(--text3)">~</span><input type="date" id="s-to">
         <button class="btn btn-primary btn-sm" onclick="loadStats()">조회</button>
       </div>
+      <!-- 요약 카드 -->
       <div class="stat-grid" id="stats-summary"></div>
+      <!-- 전월 대비 -->
+      <div id="stats-compare" style="display:none;margin-bottom:1rem"></div>
+      <!-- 섹션1: 계정과목별 막대 -->
       <div id="stats-charts"></div>
+      <!-- 섹션2: 소모품비 누적 막대 -->
+      <div id="stats-sub830" style="display:none;margin-top:1rem"></div>
+      <!-- 섹션3: 상세 내역 -->
       <div id="stats-detail" style="display:none;margin-top:1rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span id="stats-detail-title" style="font-size:13px;font-weight:700;color:var(--text)"></span>
@@ -529,7 +536,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>날짜</th><th>거래처</th><th>적요</th><th style="text-align:right">금액</th></tr></thead>
+            <thead><tr><th>날짜</th><th>소분류</th><th>거래처</th><th>적요</th><th style="text-align:right">금액</th></tr></thead>
             <tbody id="stats-detail-body"></tbody>
           </table>
         </div>
@@ -1082,59 +1089,105 @@ async function loadStats(){
   const to=document.getElementById('s-to')?.value;
   showLoading(true);
   const{data}=await sb.from('entries').select('*').eq('branch',curBranch).gte('date',from).lte('date',to);
+  // 전월 기간
+  const fd=new Date(from),td=new Date(to);
+  const days=Math.round((td-fd)/86400000)+1;
+  const prevTo=new Date(fd);prevTo.setDate(prevTo.getDate()-1);
+  const prevFrom=new Date(prevTo);prevFrom.setDate(prevFrom.getDate()-days+1);
+  const pfStr=prevFrom.toISOString().split('T')[0],ptStr=prevTo.toISOString().split('T')[0];
+  const{data:prevData}=await sb.from('entries').select('*').eq('branch',curBranch).gte('date',pfStr).lte('date',ptStr);
   showLoading(false);
+
   const entries=data||[];
+  const prevEntries=prevData||[];
+  window._statsEntries=entries;
+
   const totalExp=entries.filter(e=>e.kind==='지출').reduce((s,e)=>s+e.amt,0);
   const totalInc=entries.filter(e=>e.kind==='입금').reduce((s,e)=>s+e.amt,0);
+  const prevExp=prevEntries.filter(e=>e.kind==='지출').reduce((s,e)=>s+e.amt,0);
+  const expDiff=totalExp-prevExp;
+
+  // 요약 카드
   document.getElementById('stats-summary').innerHTML=`
     <div class="stat"><div class="stat-label">총 지출</div><div class="stat-val exp">${totalExp.toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">총 입금</div><div class="stat-val inc">${totalInc.toLocaleString()}원</div></div>
-    <div class="stat"><div class="stat-label">지출 건수</div><div class="stat-val">${entries.filter(e=>e.kind==='지출').length}건</div></div>
-    <div class="stat"><div class="stat-label">입금 건수</div><div class="stat-val">${entries.filter(e=>e.kind==='입금').length}건</div></div>`;
+    <div class="stat"><div class="stat-label">전기 대비</div><div class="stat-val" style="color:${expDiff>0?'var(--c-expense)':expDiff<0?'var(--c-income)':'var(--text)'}">${expDiff>0?'+':''}${expDiff.toLocaleString()}원</div></div>
+    <div class="stat"><div class="stat-label">지출 건수</div><div class="stat-val">${entries.filter(e=>e.kind==='지출').length}건</div></div>`;
+
+  // 전기 대비 섹션
   const byAcct={};
   entries.filter(e=>e.kind==='지출').forEach(e=>{byAcct[e.acct]=(byAcct[e.acct]||0)+e.amt});
+  const byAcctPrev={};
+  prevEntries.filter(e=>e.kind==='지출').forEach(e=>{byAcctPrev[e.acct]=(byAcctPrev[e.acct]||0)+e.amt});
+  const compareSec=document.getElementById('stats-compare');
+  const compareRows=Object.entries(byAcct).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,val])=>{
+    const prev=byAcctPrev[name]||0;
+    const diff=val-prev;
+    const diffColor=diff>0?'var(--c-expense)':diff<0?'var(--c-income)':'var(--text3)';
+    const diffStr=diff===0?'±0':`${diff>0?'+':''}${diff.toLocaleString()}원`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px">${name}</span>
+      <span style="font-weight:700;font-size:13px">${val.toLocaleString()}원</span>
+      <span style="font-size:12px;color:${diffColor};min-width:80px;text-align:right">${diffStr}</span>
+    </div>`;
+  }).join('');
+  if(compareRows){
+    compareSec.style.display='block';
+    compareSec.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">전기 대비 <span style="font-size:10px;color:var(--text3);font-weight:400">(${pfStr} ~ ${ptStr})</span></div>${compareRows}`;
+  } else compareSec.style.display='none';
+
+  // 계정과목별 막대
   const sorted=Object.entries(byAcct).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const maxVal=sorted[0]?sorted[0][1]:1;
-  const colors=['#185FA5','#1D9E75','#BA7517','#A32D2D','#534AB7','#0F6E56','#D85A30','#3B6D11','#854F0B','#993556'];
-  // 통계용 entries 저장
-  window._statsEntries=entries;
+  const acctColors={'소모품비':'#1B5EAB','행사비':'#E8851B','광고선전비':'#7B52D6','복리후생비':'#1D9E75','접대비':'#D85A30','회의비':'#2196A6','판매촉진비':'#C74B7B','상여금':'#5C7A2E','기타잡비':'#888','도서인쇄비':'#4A90D9','통신비':'#26A69A','지급임차료':'#8D6E63'};
+  document.getElementById('stats-charts').innerHTML=`
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">계정과목별 지출 <span style="font-size:10px;color:var(--text3);font-weight:400">막대 클릭 시 상세내역</span></div>
+    <div class="chart-bar-wrap">${sorted.map(([name,val])=>{
+      const bg=acctColors[name]||'#9898b0';
+      const pct=totalExp>0?Math.round(val/totalExp*100):0;
+      return `<div class="bar-row" onclick="showStatsDetail('${name}')" style="cursor:pointer">
+        <div class="bar-label" title="${name}">${name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${bg}"></div></div>
+        <div class="bar-amt">${val.toLocaleString()}원 <span style="color:var(--text3);font-size:10px">${pct}%</span></div>
+      </div>`;
+    }).join('')}${sorted.length===0?'<div class="empty">데이터 없음</div>':''}</div>`;
 
-  // 소모품비 소분류 분석
-  const sub830={};
+  // 소모품비 소분류 누적 막대 + 카드
+  const sub830Data={};
   entries.filter(e=>e.kind==='지출'&&e.code==='830').forEach(e=>{
     const key=e.sub_acct||'미분류';
-    sub830[key]=(sub830[key]||0)+e.amt;
+    sub830Data[key]=(sub830Data[key]||0)+e.amt;
   });
-  const hasSub=Object.keys(sub830).length>0;
-
-  // 소모품비를 소분류로 분리해서 차트 생성
-  let chartEntries=[...sorted];
-  if(hasSub){
-    // 소모품비 항목을 소분류로 교체
-    chartEntries=sorted.filter(([name])=>name!=='소모품비');
+  const sub830Total=Object.values(sub830Data).reduce((s,v)=>s+v,0);
+  const subColors={'인쇄·출력용품':'#1B5EAB','위생·생활용품':'#2196A6','사무용품':'#4A90D9','수업용품':'#7BB8F0','기타소모품':'#B0C4DE','미분류':'#ccc'};
+  const subSec=document.getElementById('stats-sub830');
+  if(sub830Total>0){
     const subOrder=['인쇄·출력용품','위생·생활용품','사무용품','수업용품','기타소모품','미분류'];
-    subOrder.forEach(sname=>{
-      if(sub830[sname]) chartEntries.push([`소모품비 > ${sname}`,sub830[sname]]);
-    });
-    chartEntries.sort((a,b)=>b[1]-a[1]);
-    chartEntries=chartEntries.slice(0,12);
-  }
-  const maxVal2=chartEntries[0]?chartEntries[0][1]:1;
-
-  document.getElementById('stats-charts').innerHTML=`
-    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">
-      계정과목별 지출 ${hasSub?'(소모품비 소분류 포함)':''} <span style="font-size:10px;color:var(--text3);font-weight:400">막대 클릭 시 상세내역</span>
-    </div>
-    <div class="chart-bar-wrap">${chartEntries.map(([name,val],i)=>{
-      const isSub=name.startsWith('소모품비 >');
-      const dispName=isSub?name.replace('소모품비 > ','　└ '):name;
-      return `<div class="bar-row" onclick="showStatsDetail('${name}')" style="cursor:pointer;${isSub?'opacity:0.85':''}" title="${name} 상세보기">
-        <div class="bar-label" title="${dispName}" style="${isSub?'font-size:11px;color:var(--c-primary)':''}">${dispName}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/maxVal2*100)}%;background:${isSub?'#4A90D9':colors[i%colors.length]}"></div></div>
-        <div class="bar-amt">${val.toLocaleString()}원</div>
+    const subEntries=subOrder.filter(k=>sub830Data[k]).map(k=>[k,sub830Data[k]]);
+    const stackedBar=subEntries.map(([k,v])=>{
+      const w=Math.round(v/sub830Total*100);
+      return `<div style="width:${w}%;background:${subColors[k]||'#ccc'};height:100%;display:inline-block;transition:opacity 0.2s" title="${k}: ${v.toLocaleString()}원 (${w}%)"></div>`;
+    }).join('');
+    const legend=subEntries.map(([k])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:${subColors[k]||'#ccc'};display:inline-block"></span>${k}</span>`).join('');
+    const subCards=subEntries.map(([k,v])=>{
+      const pct=Math.round(v/sub830Total*100);
+      const ex=SUB_ACCOUNTS['830'].find(s=>s.name===k)?.desc||'';
+      return `<div onclick="showStatsDetail('소모품비 > ${k}')" style="flex:1;min-width:130px;border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;border-top:3px solid ${subColors[k]||'#ccc'};transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+        <div style="font-size:11px;font-weight:700;color:${subColors[k]||'#888'};margin-bottom:4px">${k}</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">${v.toLocaleString()}원</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">${pct}%</div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.4">${ex}</div>
       </div>`;
-    }).join('')}${chartEntries.length===0?'<div class="empty">데이터 없음</div>':''}</div>`;
+    }).join('');
+    subSec.style.display='block';
+    subSec.innerHTML=`
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">소모품비 소분류 분석 <span style="font-size:12px;font-weight:400;color:var(--text3)">${sub830Total.toLocaleString()}원</span></div>
+      <div style="height:28px;border-radius:8px;overflow:hidden;margin-bottom:6px;display:flex">${stackedBar}</div>
+      <div style="margin-bottom:12px">${legend}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${subCards}</div>`;
+  } else subSec.style.display='none';
 }
+
 function showStatsDetail(acctName){
   const isSub=acctName.startsWith('소모품비 > ');
   const subName=isSub?acctName.replace('소모품비 > ',''):'';
@@ -1148,8 +1201,9 @@ function showStatsDetail(acctName){
   tbody.innerHTML=entries.map(e=>`
     <tr>
       <td>${e.date}</td>
-      <td>${e.sub_acct?`<span class="tag tag-acct" style="font-size:10px">${e.sub_acct}</span>`:''} ${e.vendor||'-'}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.memo||'-'}</td>
+      <td style="font-size:11px">${e.sub_acct?`<span class="tag tag-acct" style="font-size:10px">${e.sub_acct}</span>`:'-'}</td>
+      <td>${e.vendor||'-'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.memo||'-'}</td>
       <td class="amt-exp" style="text-align:right">-${e.amt.toLocaleString()}원</td>
     </tr>`).join('');
   const total=entries.reduce((s,e)=>s+e.amt,0);
