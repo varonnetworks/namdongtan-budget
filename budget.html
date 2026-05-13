@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1B5EAB">
-<title>JLS 운영비 관리 1.0</title>
+<title>JLS 운영비 관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -63,23 +63,23 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 .btn:hover{opacity:0.85}.btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-sm{padding:6px 12px;font-size:12px}
 /* 폼 + 참조표 레이아웃 */
-.preview-side{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;position:sticky;top:100px;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:140px;justify-content:center}
+.preview-side{display:none!important}
 .preview-side img{width:100%;max-height:180px;object-fit:contain;border-radius:6px;cursor:pointer;border:1px solid var(--border)}
 .preview-side .pdf-link{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--c-primary);text-decoration:none;font-size:11px;text-align:center;padding:8px}
 .preview-side .pdf-link i{font-size:36px}
 .preview-side .no-file{color:var(--text3);font-size:11px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .preview-side .no-file i{font-size:28px}
 
-.form-with-ref{display:grid;grid-template-columns:150px 1fr 260px;gap:12px;align-items:start}
+.form-with-ref{display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start}
 .inline-form{background:#F0F7FF;border:1.5px dashed var(--c-primary);border-radius:10px;padding:1rem}
 .ref-table-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;position:sticky;top:100px}
 .ref-table-box .ref-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.ref-item{padding:5px 7px;border-radius:6px;cursor:pointer;border:1px solid var(--border);transition:background 0.12s;display:flex;flex-direction:column;gap:2px}
+.ref-item{padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid var(--border);transition:background 0.12s;display:flex;flex-direction:column;gap:3px}
 .ref-item:hover{background:#EEF4FF;border-color:var(--c-primary)}
-.ref-code{font-size:10px;font-weight:700;color:var(--c-primary)}
-.ref-name{font-size:11px;font-weight:600;color:var(--text)}
-.ref-desc{font-size:9px;color:var(--text3);line-height:1.3}
+.ref-code{font-size:11px;font-weight:700;color:var(--c-primary)}
+.ref-name{font-size:13px;font-weight:700;color:var(--text)}
+.ref-desc{font-size:11px;color:var(--text2);line-height:1.4}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
 .fgroup{display:flex;flex-direction:column;gap:4px}
 .fgroup label{font-size:11px;color:var(--text2);font-weight:600}
@@ -174,7 +174,6 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 @media(max-width:900px){
   .form-with-ref{grid-template-columns:1fr}
   .ref-table-box{display:none}
-  .preview-side{display:none!important}
 }
 @media(max-width:768px){
   #stats-top-row{grid-template-columns:1fr!important}
@@ -339,7 +338,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -395,13 +394,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
       <div id="form-area" style="display:none">
         <div class="form-with-ref">
-          <!-- 영수증 미리보기 사이드 -->
-          <div class="preview-side" id="preview-side">
-            <div class="no-file" id="preview-empty">
-              <i class="ti ti-photo"></i>
-              <span>영수증 첨부 시<br>여기에 표시됩니다</span>
-            </div>
-            <img id="preview-side-img" src="" alt="영수증 미리보기" style="display:none" onclick="showReceiptPreview()">
+<img id="preview-side-img" src="" alt="영수증 미리보기" style="display:none" onclick="showReceiptPreview()">
             <a id="preview-side-pdf" href="#" target="_blank" class="pdf-link" style="display:none">
               <i class="ti ti-file-type-pdf"></i>
               <span id="preview-side-pdf-name"></span>
@@ -457,7 +450,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                 <label>수량 <span class="shortcut-hint">(소모품 주기 분석용)</span></label>
                 <input type="number" id="f-qty" placeholder="1" min="1" value="1">
               </div>
-              <div class="fgroup" id="receipt-field" style="display:flex;flex-direction:column;gap:4px">
+              <div class="fgroup" id="receipt-field" style="display:flex;flex-direction:column;gap:6px">
                 <label>영수증 (선택)</label>
                 <div class="upload-area" id="upload-area" onclick="document.getElementById('f-receipt').click()"
                   ondragover="event.preventDefault();this.classList.add('drag')"
@@ -467,15 +460,17 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                   <span id="upload-label">클릭 또는 드래그 (JPG·PNG·PDF)</span>
                 </div>
                 <input type="file" id="f-receipt" accept="image/*,.pdf" style="display:none" onchange="previewReceipt(this)">
-                <!-- 분석 버튼 - 파일 첨부 후 항상 표시 -->
-                <div id="analyze-btns" style="display:none;gap:6px;flex-wrap:wrap;margin-top:4px">
-                  <button type="button" id="analyze-btn" onclick="analyzeReceipt('single')" style="font-size:12px;color:#fff;background:var(--c-primary);border:none;border-radius:6px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:4px"><i class="ti ti-sparkles" style="font-size:13px"></i> 자동입력</button>
-                  <button type="button" id="analyze-multi-btn" onclick="analyzeReceipt('multi')" style="font-size:12px;color:#fff;background:#1D9E75;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:4px"><i class="ti ti-list-details" style="font-size:13px"></i> 품목분리</button>
-                  <button type="button" onclick="clearReceipt()" style="font-size:12px;color:var(--c-accent);background:#fff;border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer"><i class="ti ti-trash" style="font-size:13px"></i> 삭제</button>
+                <!-- 파일명 -->
+                <div id="receipt-filename" style="font-size:11px;color:var(--text2);display:none"></div>
+                <!-- 1줄: 자동입력 + 품목분리 -->
+                <div id="analyze-btns" style="display:none;gap:6px">
+                  <button type="button" id="analyze-btn" onclick="analyzeReceipt('single')" style="font-size:12px;color:#fff;background:var(--c-primary);border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-sparkles" style="font-size:13px"></i> 자동입력</button>
+                  <button type="button" id="analyze-multi-btn" onclick="analyzeReceipt('multi')" style="font-size:12px;color:#fff;background:#1D9E75;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-list-details" style="font-size:13px"></i> 품목분리</button>
                 </div>
-                <div id="receipt-preview" style="display:none;align-items:center;gap:8px;margin-top:4px">
-                  <img id="receipt-img" style="width:48px;height:48px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)" src="" alt="영수증" onclick="showReceiptPreview()">
-                  <div id="receipt-filename" style="font-size:11px;color:var(--text2)"></div>
+                <!-- 2줄: 미리보기 + 삭제 -->
+                <div id="receipt-preview" style="display:none;gap:6px">
+                  <button type="button" onclick="showReceiptPreview()" style="font-size:12px;color:var(--c-primary);background:#E8F0FA;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-eye" style="font-size:13px"></i> 미리보기</button>
+                  <button type="button" onclick="clearReceipt()" style="font-size:12px;color:var(--c-accent);background:#FEF0EC;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex:1;justify-content:center"><i class="ti ti-trash" style="font-size:13px"></i> 삭제</button>
                 </div>
               </div>
             </div>
@@ -507,7 +502,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
               <div class="ref-item" onclick="selectAcctFromRef('813','접대비')"><span class="ref-code">813</span><span class="ref-name">접대비</span><span class="ref-desc">일부 수강생 간식, 즉흥 특정반 포상</span></div>
               <div class="ref-item" onclick="selectAcctFromRef('827','회의비')"><span class="ref-code">827</span><span class="ref-name">회의비</span><span class="ref-desc">원장단 회의 음료·다과</span></div>
               <div class="ref-item" onclick="selectAcctFromRef('830','소모품비')"><span class="ref-code">830</span><span class="ref-name">소모품비</span><span class="ref-desc">필기류·복사용지·위생비품류·수업용품</span></div>
-              <div class="ref-item" onclick="selectAcctFromRef('833','광고선전비')"><span class="ref-code">833</span><span class="ref-name">광고선전비</span><span class="ref-desc">우수학생 시상, 현수막·홍보물</span></div>
+              <div class="ref-item" onclick="selectAcctFromRef('833','광고선전비')"><span class="ref-code">833</span><span class="ref-name">광고선전비</span><span class="ref-desc">우수학생 시상, 현수막·홍보물, 설명회 다과·생수</span></div>
               <div class="ref-item" onclick="selectAcctFromRef('834','판매촉진비')"><span class="ref-code">834</span><span class="ref-name">판매촉진비</span><span class="ref-desc">사전 공지된 우수반 포상 음식</span></div>
               <div class="ref-item" onclick="selectAcctFromRef('841','행사비')"><span class="ref-code">841</span><span class="ref-name">행사비</span><span class="ref-desc">마켓데이·푸드데이 등 학원 행사</span></div>
               <div class="ref-item" onclick="selectAcctFromRef('842','기타잡비')"><span class="ref-code">842</span><span class="ref-name">기타잡비</span><span class="ref-desc">사진 인화·기타 소액 지출</span></div>
@@ -998,6 +993,10 @@ function processFile(file){
   sideDel.style.display='block';
   const abEl=document.getElementById('analyze-btns');
   if(abEl) abEl.style.display='flex';
+  const fn=document.getElementById('receipt-filename');
+  if(fn){fn.textContent=file.name;fn.style.display='block';}
+  const rp=document.getElementById('receipt-preview');
+  if(rp) rp.style.display='flex';
   if(file.type.startsWith('image/')){
     const reader=new FileReader();
     reader.onload=e=>{
@@ -1027,6 +1026,8 @@ function clearReceipt(){
   document.getElementById('receipt-preview').style.display='none';
   const abEl2=document.getElementById('analyze-btns');
   if(abEl2) abEl2.style.display='none';
+  const fn2=document.getElementById('receipt-filename');
+  if(fn2){fn2.textContent='';fn2.style.display='none';}
   document.getElementById('preview-side-img').style.display='none';
   document.getElementById('preview-side-pdf').style.display='none';
   document.getElementById('preview-side-del').style.display='none';
@@ -1034,7 +1035,17 @@ function clearReceipt(){
   if(window._pdfBlobUrl){URL.revokeObjectURL(window._pdfBlobUrl);window._pdfBlobUrl=null;}
 }
 function showReceiptPreview(){
-  document.getElementById('modal-content').innerHTML=`<img src="${document.getElementById('receipt-img').src}" alt="영수증">`;
+  const img=document.getElementById('receipt-img');
+  let src=img?img.src:'';
+  if(!src||src===window.location.href){
+    // PDF blob URL
+    if(window._pdfBlobUrl) src=window._pdfBlobUrl;
+  }
+  if(!src) return;
+  const isPdf=pendingFile&&pendingFile.type==='application/pdf';
+  document.getElementById('modal-content').innerHTML=isPdf
+    ?`<p style="font-size:12px;color:var(--text3);margin-bottom:8px">${pendingFile.name}</p><a href="${src}" target="_blank" style="color:var(--c-primary);font-size:14px"><i class="ti ti-external-link"></i> PDF 새 탭에서 열기</a>`
+    :`<img src="${src}" alt="영수증">`;
   document.getElementById('modal-overlay').classList.add('open');
 }
 function toggleForm(){
