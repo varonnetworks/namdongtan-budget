@@ -37,7 +37,7 @@ body{font-family:'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--
 .shortcut-link:hover{background:#F0F4FA;color:var(--c-primary)}
 .shortcut-link i{font-size:14px;color:var(--text3)}
 .add-shortcut{font-size:11px;color:var(--c-primary);background:none;border:none;cursor:pointer;padding:2px 4px}
-#content{margin-left:var(--sidebar);flex:1;padding:1.5rem;max-width:calc(100vw - var(--sidebar))}
+#content{margin-left:var(--sidebar);flex:1;padding:1.5rem;max-width:calc(100vw - var(--sidebar));transition:margin 0.3s}
 .page{display:none}.page.active{display:block}
 .page-header{font-size:18px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
@@ -161,6 +161,11 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 #toast.show{opacity:1}
 .empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
 .empty i{font-size:36px;display:block;margin-bottom:8px}
+
+.bottom-tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--text3);cursor:pointer;padding:6px 12px;border-radius:8px;transition:color 0.15s;min-width:60px}
+.bottom-tab i{font-size:20px}
+.bottom-tab.active{color:var(--c-primary);font-weight:600}
+#mobile-header{display:none}
 #mobile-menu{display:none;position:fixed;top:10px;left:10px;z-index:100;background:var(--c-primary);color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:18px}
 @media(max-width:1100px){
   .form-with-ref{grid-template-columns:1fr 260px}
@@ -172,12 +177,46 @@ td.amt-inc{color:var(--c-income);font-weight:600}
   .preview-side{display:none!important}
 }
 @media(max-width:768px){
-  #sidebar{transform:translateX(-100%);transition:transform 0.3s}
+  /* 사이드바 오버레이 방식 */
+  #sidebar{transform:translateX(-100%);transition:transform 0.3s;z-index:200}
   #sidebar.open{transform:translateX(0)}
-  #content{margin-left:0}
-  .form-grid{grid-template-columns:1fr}
-  #chat-panel{width:calc(100vw - 32px);right:16px}
+  #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:199}
+  #sidebar-overlay.show{display:block}
+  #content{margin-left:0;padding:0.75rem;padding-bottom:70px}
+  .form-grid{grid-template-columns:1fr 1fr}
+  #chat-panel{width:calc(100vw - 24px);right:12px;bottom:70px}
+  #chat-fab{bottom:70px;right:12px}
   #mobile-menu{display:flex}
+  /* 하단 탭바 */
+  #bottom-nav{display:flex!important}
+  /* 통계 summary 카드 */
+  .stat-grid{grid-template-columns:1fr 1fr}
+  /* 테이블 → 카드형 */
+  .tbl-wrap table thead{display:none}
+  .tbl-wrap table tbody tr{display:flex;flex-direction:column;background:#fff;border-radius:10px;margin-bottom:8px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow)}
+  .tbl-wrap table tbody td{border:none;padding:3px 0;font-size:13px;display:flex;align-items:center;gap:6px}
+  .tbl-wrap table tbody td:empty{display:none}
+  .tbl-wrap table tbody td:before{content:attr(data-label);font-size:11px;color:var(--text3);min-width:52px;flex-shrink:0}
+  .tbl-wrap{overflow-x:unset}
+  .tbl-wrap table{min-width:unset}
+  /* 페이지 헤더 숨김 (탭바로 대체) */
+  .page-header{font-size:15px;margin-bottom:0.75rem}
+  /* 상단 모바일 헤더 */
+  #mobile-header{display:flex!important}
+  /* 필터바 */
+  .filter-bar{gap:6px}
+  .filter-bar input,.filter-bar select{font-size:12px;padding:6px 8px}
+  /* 폼 */
+  .form-grid{grid-template-columns:1fr 1fr}
+  .inline-form{padding:0.75rem}
+  /* 소분류 필드 */
+  #sub-acct-field{grid-column:1/-1}
+  /* 메모 */
+  #f-memo-in{grid-column:1/-1}
+}
+@media(max-width:400px){
+  .form-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -186,6 +225,30 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="loading-overlay"><div class="spinner"></div><span style="font-size:13px;color:var(--text2)">처리 중...</span></div>
 <div id="toast"></div>
 <button id="mobile-menu" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- 모바일 상단 헤더 -->
+<div id="mobile-header" style="display:none;position:fixed;top:0;left:0;right:0;height:48px;background:var(--c-primary);color:#fff;z-index:150;align-items:center;padding:0 12px;gap:10px">
+  <button onclick="toggleSidebar()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px"><i class="ti ti-menu-2"></i></button>
+  <span style="font-size:14px;font-weight:700;flex:1" id="mobile-title">거래내역</span>
+  <select id="mobile-branch-sel" onchange="changeBranch(this.value)" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:4px 6px;font-size:12px;max-width:100px"></select>
+</div>
+
+<!-- 하단 탭바 (모바일) -->
+<nav id="bottom-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid var(--border);z-index:150;justify-content:space-around;align-items:center">
+  <div class="bottom-tab active" onclick="showPage('ledger',this)" data-page="ledger">
+    <i class="ti ti-list-details"></i><span>거래내역</span>
+  </div>
+  <div class="bottom-tab" onclick="showPage('stats',this)" data-page="stats">
+    <i class="ti ti-chart-pie"></i><span>통계</span>
+  </div>
+  <div class="bottom-tab" id="bottom-allbranch" style="display:none" onclick="showPage('allbranch',this)" data-page="allbranch">
+    <i class="ti ti-layout-grid"></i><span>전분원</span>
+  </div>
+  <div class="bottom-tab" onclick="showPage('supplies',this)" data-page="supplies">
+    <i class="ti ti-box"></i><span>소모품</span>
+  </div>
+</nav>
 
 <div id="login-screen">
   <div class="login-card">
@@ -252,6 +315,10 @@ td.amt-inc{color:var(--c-income);font-weight:600}
       </div>
       <div class="fgroup"><label>거래처</label><input type="text" id="edit-vendor" placeholder="거래처명"></div>
       <div class="fgroup"><label>금액 *</label><input type="number" id="edit-amt" placeholder="0"></div>
+      <div class="fgroup" id="edit-sub-field" style="display:none">
+        <label>소분류</label>
+        <select id="edit-sub-acct" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px"></select>
+      </div>
       <div class="fgroup" id="edit-qty-field">
         <label>수량</label>
         <input type="number" id="edit-qty" placeholder="1" min="1">
@@ -376,6 +443,10 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                 <label>금액 *</label>
                 <input type="number" id="f-amt" placeholder="0">
               </div>
+              <div class="fgroup" id="sub-acct-field" style="display:none">
+                <label>소분류 *</label>
+                <select id="f-sub-acct" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px"></select>
+              </div>
               <div class="fgroup" id="qty-field" style="display:none">
                 <label>수량 <span class="shortcut-hint">(소모품 주기 분석용)</span></label>
                 <input type="number" id="f-qty" placeholder="1" min="1" value="1">
@@ -424,7 +495,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>날짜</th><th>구분</th><th>계정과목</th><th>거래처</th><th>적요</th><th>수량</th><th style="text-align:right">금액</th><th>영수증</th><th></th></tr></thead>
+          <thead><tr><th>날짜</th><th>구분</th><th>계정과목</th><th>소분류</th><th>거래처</th><th>적요</th><th>수량</th><th style="text-align:right">금액</th><th>영수증</th><th></th></tr></thead>
           <tbody id="ledger-body"></tbody>
         </table>
         <div class="empty" id="ledger-empty" style="display:none"><i class="ti ti-inbox"></i>내역이 없습니다</div>
@@ -522,7 +593,11 @@ let curUser=null,curBranch=null,allEntries=[],receiptB64=null,pendingFile=null,c
 
 function showLoading(v){document.getElementById('loading-overlay').classList[v?'add':'remove']('show')}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  const ov=document.getElementById('sidebar-overlay');
+  if(ov) ov.classList.toggle('show');
+}
 
 async function doLogin(){
   const id=document.getElementById('lid').value.trim();
@@ -552,7 +627,18 @@ function initApp(){
   const sel=document.getElementById('branch-sel');
   sel.innerHTML=curUser.branches.map(b=>`<option value="${b}">${b}</option>`).join('');
   sel.value=curBranch;
-  if(curUser.role!=='user') document.getElementById('nav-allbranch').style.display='flex';
+  const mSel=document.getElementById('mobile-branch-sel');
+  if(mSel){mSel.innerHTML=sel.innerHTML;mSel.value=curBranch;}
+  if(curUser.role!=='user'){
+    document.getElementById('nav-allbranch').style.display='flex';
+    const bt=document.getElementById('bottom-allbranch');
+    if(bt) bt.style.display='flex';
+  }
+  // 모바일 헤더 표시
+  const mh=document.getElementById('mobile-header');
+  if(mh&&window.innerWidth<=768) mh.style.display='flex';
+  // 모바일일 때 content 상단 여백
+  if(window.innerWidth<=768) document.getElementById('content').style.paddingTop='60px';
   initDates();populateFilterSelect();loadEntries();renderShortcuts();
   document.addEventListener('keydown',globalKey);
 }
@@ -570,7 +656,13 @@ function initDates(){
   ['f-to','s-to','ab-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=end});
   document.getElementById('f-date').value=now.toISOString().split('T')[0];
 }
-function changeBranch(b){curBranch=b;loadEntries();renderShortcuts()}
+function changeBranch(b){
+  curBranch=b;
+  document.getElementById('branch-sel').value=b;
+  const mSel=document.getElementById('mobile-branch-sel');
+  if(mSel) mSel.value=b;
+  loadEntries();renderShortcuts();
+}
 function populateFilterSelect(){
   const opts=ACCOUNTS.map(a=>`<option value="${a.code}">${a.code} ${a.name}</option>`).join('');
   document.getElementById('f-acct').innerHTML='<option value="">계정 전체</option>'+opts;
@@ -580,6 +672,7 @@ function setKind(kind){
   const txt=document.getElementById('f-kind-text');
   if(txt) txt.value=kind;
   document.getElementById('receipt-field').style.display=kind==='지출'?'flex':'none';
+  updateSubFields();
   // 드롭다운 하이라이트
   document.querySelectorAll('.kind-option').forEach(o=>{
     const isSelected=o.dataset.val===kind;
@@ -610,11 +703,19 @@ function selectKind(kind){
 }
 function showKindDrop(){document.getElementById('kind-dropdown').style.display='block'}
 function hideKindDrop(){document.getElementById('kind-dropdown').style.display='none'}
-function updateQtyField(){
+function updateSubFields(){
   const code=document.getElementById('f-acct-code').value;
   const kind=document.getElementById('f-kind').value;
-  document.getElementById('qty-field').style.display=(kind==='지출'&&code==='830')?'flex':'none';
+  const is830=kind==='지출'&&code==='830';
+  document.getElementById('qty-field').style.display=is830?'flex':'none';
+  const subField=document.getElementById('sub-acct-field');
+  subField.style.display=is830?'flex':'none';
+  if(is830){
+    const sel=document.getElementById('f-sub-acct');
+    sel.innerHTML=SUB_ACCOUNTS['830'].map(s=>`<option value="${s.code}">${s.name}</option>`).join('');
+  }
 }
+function updateQtyField(){updateSubFields();}
 function filterAcct(val){
   const dd=document.getElementById('acct-dropdown');
   const v=val.trim().toLowerCase();
@@ -626,7 +727,7 @@ function selectAcct(code,name){
   document.getElementById('f-acct-text').value=code+' '+name;
   document.getElementById('f-acct-code').value=code;
   document.getElementById('acct-dropdown').classList.remove('show');
-  updateQtyField();
+  updateSubFields();
 }
 let acctFocusIdx=-1;
 function handleAcctKey(e){
@@ -751,6 +852,7 @@ function toggleForm(){
     document.getElementById('f-acct-code').value='';
     document.getElementById('f-kind-text').value='지출';
     setKind('지출');filterAcct('');
+    document.getElementById('sub-acct-field').style.display='none';
   }
 }
 async function loadEntries(){
@@ -797,6 +899,7 @@ function renderLedger(data){
       <td>${e.date}</td>
       <td><span class="tag ${e.kind==='지출'?'tag-exp':'tag-inc'}">${e.kind}</span></td>
       <td><span class="tag tag-acct">${e.code}</span> ${e.acct}</td>
+      <td style="font-size:11px;color:var(--text2)">${e.sub_acct||'-'}</td>
       <td>${e.vendor||'-'}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.memo||''}">${e.memo||'-'}</td>
       <td style="text-align:center;color:var(--text2)">${e.qty||'-'}</td>
@@ -850,7 +953,10 @@ async function saveEntry(){
     const{data:urlData}=sb.storage.from('receipts').getPublicUrl(path);
     receipt_url=urlData.publicUrl;
   }
-  const payload={branch:curBranch,date,kind,code,acct,vendor,memo,amt,receipt_url};
+  const subAcctSel=document.getElementById('f-sub-acct');
+  const sub_code=code==='830'?subAcctSel.value:'';
+  const sub_acct=code==='830'?SUB_ACCOUNTS['830'].find(s=>s.code===subAcctSel.value)?.name||'':'';
+  const payload={branch:curBranch,date,kind,code,acct,sub_code,sub_acct,vendor,memo,amt,receipt_url};
   if(code==='830') payload.qty=qty;
   const{error}=await sb.from('entries').insert(payload);
   btn.disabled=false;showLoading(false);
@@ -867,10 +973,25 @@ function openEdit(id){
   document.getElementById('edit-memo').value=e.memo||'';
   document.getElementById('edit-qty').value=e.qty||1;
   document.getElementById('edit-qty-field').style.display=e.code==='830'?'flex':'none';
+  const editSubField=document.getElementById('edit-sub-field');
+  editSubField.style.display=e.code==='830'?'flex':'none';
+  if(e.code==='830'){
+    const eSubSel=document.getElementById('edit-sub-acct');
+    eSubSel.innerHTML=SUB_ACCOUNTS['830'].map(s=>`<option value="${s.code}" ${s.code===e.sub_code?'selected':''}>${s.name}</option>`).join('');
+  }
   // 계정과목 셀렉트 채우기
   const sel=document.getElementById('edit-acct-sel');
   sel.innerHTML=ACCOUNTS.map(a=>`<option value="${a.code}" ${a.code===e.code?'selected':''}>${a.code} ${a.name}</option>`).join('');
-  sel.onchange=()=>{document.getElementById('edit-qty-field').style.display=sel.value==='830'?'flex':'none'};
+  sel.onchange=()=>{
+    const is830=sel.value==='830';
+    document.getElementById('edit-qty-field').style.display=is830?'flex':'none';
+    const esf=document.getElementById('edit-sub-field');
+    esf.style.display=is830?'flex':'none';
+    if(is830){
+      const eSubSel=document.getElementById('edit-sub-acct');
+      eSubSel.innerHTML=SUB_ACCOUNTS['830'].map(s=>`<option value="${s.code}">${s.name}</option>`).join('');
+    }
+  };
   document.getElementById('edit-overlay').style.display='flex';
 }
 function closeEdit(){document.getElementById('edit-overlay').style.display='none'}
@@ -888,7 +1009,10 @@ async function saveEdit(){
   if(!date||!code){toast('날짜와 계정과목은 필수입니다');return}
   if(amt<=0){toast('금액을 입력하세요');return}
   showLoading(true);
-  const payload={date,kind,code,acct,vendor,memo,amt};
+  const eSub=document.getElementById('edit-sub-acct');
+  const e_sub_code=code==='830'&&eSub?eSub.value:'';
+  const e_sub_acct=code==='830'&&eSub?SUB_ACCOUNTS['830'].find(s=>s.code===eSub.value)?.name||'':'';
+  const payload={date,kind,code,acct,sub_code:e_sub_code,sub_acct:e_sub_acct,vendor,memo,amt};
   if(code==='830') payload.qty=qty;
   const{error}=await sb.from('entries').update(payload).eq('id',id);
   showLoading(false);
@@ -1098,8 +1222,8 @@ async function deleteSupply(id){
 function exportExcel(){
   const memo=document.getElementById('f-memo')?.value?.toLowerCase()||'';
   const data=memo?allEntries.filter(e=>(e.memo||'').toLowerCase().includes(memo)):allEntries;
-  const headers=['날짜','구분','코드','계정과목','거래처','적요','수량','금액'];
-  const rows=data.map(e=>[e.date,e.kind,e.code,e.acct,e.vendor||'',e.memo||'',e.qty||'',e.amt]);
+  const headers=['날짜','구분','코드','계정과목','소분류','거래처','적요','수량','금액'];
+  const rows=data.map(e=>[e.date,e.kind,e.code,e.acct,e.sub_acct||'',e.vendor||'',e.memo||'',e.qty||'',e.amt]);
   const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
@@ -1111,8 +1235,8 @@ async function exportAllExcel(){
   showLoading(true);
   const{data}=await sb.from('entries').select('*').gte('date',from).lte('date',to);
   showLoading(false);
-  const headers=['분원','날짜','구분','코드','계정과목','거래처','적요','수량','금액'];
-  const rows=(data||[]).map(e=>[e.branch,e.date,e.kind,e.code,e.acct,e.vendor||'',e.memo||'',e.qty||'',e.amt]);
+  const headers=['분원','날짜','구분','코드','계정과목','소분류','거래처','적요','수량','금액'];
+  const rows=(data||[]).map(e=>[e.branch,e.date,e.kind,e.code,e.acct,e.sub_acct||'',e.vendor||'',e.memo||'',e.qty||'',e.amt]);
   const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
@@ -1121,12 +1245,24 @@ async function exportAllExcel(){
 function showPage(name,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bottom-tab').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   el.classList.add('active');
+  // 같은 page의 bottom-tab도 active
+  document.querySelectorAll(`.bottom-tab[data-page="${name}"]`).forEach(t=>t.classList.add('active'));
+  // 모바일 헤더 타이틀
+  const titles={ledger:'거래내역',stats:'통계분석',allbranch:'전분원현황',supplies:'소모품관리'};
+  const mobileTitle=document.getElementById('mobile-title');
+  if(mobileTitle) mobileTitle.textContent=titles[name]||'';
   if(name==='stats') loadStats();
   if(name==='allbranch') loadAllBranch();
   if(name==='supplies') loadSupplies();
+  closeSidebar();
+}
+function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
+  const ov=document.getElementById('sidebar-overlay');
+  if(ov) ov.classList.remove('show');
 }
 function scKey(){return'jls_shortcuts_'+curBranch}
 function getShortcuts(){
