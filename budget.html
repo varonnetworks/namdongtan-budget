@@ -1033,7 +1033,7 @@ function toggleForm(){
   const open=f.style.display==='none';
   f.style.display=open?'block':'none';
   if(open){
-    clearReceipt();
+    // 폼 완전 초기화
     document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('f-amt').value='';
     document.getElementById('f-qty').value='1';
@@ -1044,6 +1044,21 @@ function toggleForm(){
     document.getElementById('f-kind-text').value='지출';
     setKind('지출');filterAcct('');
     document.getElementById('sub-acct-field').style.display='none';
+    // 영수증 초기화
+    pendingFile=null;
+    if(window._previewBlobUrl){URL.revokeObjectURL(window._previewBlobUrl);window._previewBlobUrl=null;}
+    if(window._pdfBlobUrl){URL.revokeObjectURL(window._pdfBlobUrl);window._pdfBlobUrl=null;}
+    document.getElementById('f-receipt').value='';
+    document.getElementById('upload-label').textContent='클릭 또는 드래그 (JPG·PNG·PDF)';
+    document.getElementById('upload-area').classList.remove('has-file');
+    const fn=document.getElementById('receipt-filename');
+    if(fn){fn.textContent='';fn.style.display='none';}
+    const abEl=document.getElementById('analyze-btns');
+    if(abEl) abEl.style.display='none';
+    const acEl=document.getElementById('receipt-action-btns');
+    if(acEl) acEl.style.display='none';
+    const rp=document.getElementById('receipt-preview');
+    if(rp) rp.style.display='none';
   }
 }
 async function loadEntries(){
