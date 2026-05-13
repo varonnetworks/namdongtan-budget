@@ -377,6 +377,11 @@ td.amt-inc{color:var(--c-income);font-weight:600}
           <button class="btn btn-primary btn-sm" onclick="toggleForm()"><i class="ti ti-plus"></i> 내역추가</button>
         </div>
       </div>
+      <div class="filter-bar" style="margin-bottom:8px">
+        <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('prev')"><i class="ti ti-chevron-left"></i> 지난달</button>
+        <button class="btn btn-primary btn-sm" onclick="setLedgerPeriod('this')">이번달</button>
+        <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('next')">다음달 <i class="ti ti-chevron-right"></i></button>
+      </div>
       <div class="filter-bar">
         <input type="date" id="f-from" onchange="loadEntries()">
         <span style="color:var(--text3)">~</span>
@@ -1044,6 +1049,20 @@ async function deleteEntry(id){
 }
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
+function setLedgerPeriod(dir){
+  const now=new Date();
+  let y=now.getFullYear(),m=now.getMonth();
+  if(dir==='prev') m-=1;
+  if(dir==='next') m+=1;
+  if(m<0){m=11;y--;}
+  if(m>11){m=0;y++;}
+  const mm=String(m+1).padStart(2,'0');
+  const last=new Date(y,m+1,0).getDate().toString().padStart(2,'0');
+  document.getElementById('f-from').value=`${y}-${mm}-01`;
+  document.getElementById('f-to').value=`${y}-${mm}-${last}`;
+  loadEntries();
+}
+
 function setStatsPeriod(dir){
   const now=new Date();
   let y=now.getFullYear(),m=now.getMonth();
