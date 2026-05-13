@@ -469,8 +469,13 @@ td.amt-inc{color:var(--c-income);font-weight:600}
                 <input type="file" id="f-receipt" accept="image/*,.pdf" style="display:none" onchange="previewReceipt(this)">
                 <div id="receipt-preview" style="display:none;align-items:center;gap:8px;margin-top:6px">
                   <img id="receipt-img" style="width:48px;height:48px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)" src="" alt="영수증" onclick="showReceiptPreview()">
-                  <div><div id="receipt-filename" style="font-size:11px;color:var(--text2)"></div>
-                  <button type="button" style="font-size:11px;color:var(--c-accent);background:none;border:none;cursor:pointer;padding:0" onclick="clearReceipt()">삭제</button></div>
+                  <div>
+                    <div id="receipt-filename" style="font-size:11px;color:var(--text2);margin-bottom:3px"></div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <button type="button" id="analyze-btn" onclick="analyzeReceipt()" style="font-size:11px;color:#fff;background:var(--c-primary);border:none;border-radius:5px;padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:3px"><i class="ti ti-sparkles" style="font-size:12px"></i> 자동입력</button>
+                      <button type="button" style="font-size:11px;color:var(--c-accent);background:none;border:none;cursor:pointer;padding:0" onclick="clearReceipt()">삭제</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -815,6 +820,59 @@ function handleDrop(e){
   const file=e.dataTransfer.files[0];if(file)processFile(file);
 }
 function previewReceipt(inp){const file=inp.files[0];if(file)processFile(file)}
+async function analyzeReceipt(){
+  if(!pendingFile){toast('첨부된 파일이 없습니다');return}
+  const btn=document.getElementById('analyze-btn');
+  btn.innerHTML='<i class="ti ti-loader" style="font-size:12px"></i> 분석 중...';
+  btn.disabled=true;
+
+  try{
+    let body={};
+    if(pendingFile.type==='application/pdf'){
+      // PDF 텍스트 추출
+      const arrayBuf=await pendingFile.arrayBuffer();
+      const uint8=new Uint8Array(arrayBuf);
+      let binary='';
+      uint8.forEach(b=>binary+=String.fromCharCode(b));
+      // 간단한 텍스트 추출 (PDF 텍스트 레이어)
+      const pdfStr=binary;
+      // BT...ET 블록에서 텍스트 추출
+      const textMatches=pdfStr.match(/\(([^\)]{1,200})\)\s*Tj/g)||[];
+      const extracted=textMatches.map(m=>m.replace(/^\(/,'').replace(/\)\s*Tj$/,'')).join(' ');
+      body={pdfText: extracted||binary.replace(/[^ -~가-힣ㄱ-ㅣ]/g,' ').slice(0,3000)};
+    } else {
+      // 이미지 base64
+      const reader=new FileReader();
+      const base64=await new Promise(resolve=>{
+        reader.onload=e=>resolve(e.target.result.split(',')[1]);
+        reader.readAsDataURL(pendingFile);
+      });
+      body={image:base64, mimeType:pendingFile.type};
+    }
+
+    const res=await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const data=await res.json();
+
+    if(data.error){toast('분석 오류: '+data.error);return}
+
+    // 폼에 자동입력
+    if(data.date) document.getElementById('f-date').value=data.date;
+    if(data.amount&&data.amount>0) document.getElementById('f-amt').value=data.amount;
+    if(data.vendor) document.getElementById('f-vendor').value=data.vendor;
+    if(data.memo) document.getElementById('f-memo-in').value=data.memo;
+    toast('✓ 자동입력 완료! 내용을 확인해주세요');
+  } catch(e){
+    toast('분석 오류: '+e.message);
+  } finally {
+    btn.innerHTML='<i class="ti ti-sparkles" style="font-size:12px"></i> 자동입력';
+    btn.disabled=false;
+  }
+}
+
 function processFile(file){
   if(file.size>10*1024*1024){toast('10MB 이하 파일만 가능합니다');return}
   if(!['image/jpeg','image/png','image/gif','image/webp','application/pdf'].includes(file.type)){toast('JPG·PNG·PDF만 가능합니다');return}
