@@ -44,7 +44,7 @@ body{font-family:'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
 .stat{background:#F8F9FC;border-radius:8px;padding:12px;border:1px solid var(--border)}
 .stat-label{font-size:11px;color:var(--text3);margin-bottom:4px}
-.stat-val{font-size:20px;font-weight:700;color:var(--text)}
+.stat-val{font-size:20px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat-val.inc{color:var(--c-income)}.stat-val.exp{color:var(--c-expense)}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
@@ -182,7 +182,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
   #sidebar.open{transform:translateX(0)}
   #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:199}
   #sidebar-overlay.show{display:block}
-  #content{margin-left:0;padding:0.75rem;padding-bottom:70px}
+  #content{margin-left:0;padding:0;padding-bottom:70px;padding-top:48px;max-width:100vw;width:100%}
   .form-grid{grid-template-columns:1fr 1fr}
   #chat-panel{width:calc(100vw - 24px);right:12px;bottom:70px}
   #chat-fab{bottom:70px;right:12px}
@@ -205,9 +205,16 @@ td.amt-inc{color:var(--c-income);font-weight:600}
   .page-header{font-size:15px;margin-bottom:0.75rem}
   /* 상단 모바일 헤더 */
   #mobile-header{display:flex!important}
-  /* 필터바 */
-  .filter-bar{gap:6px}
-  .filter-bar input,.filter-bar select{font-size:12px;padding:6px 8px}
+  /* 필터바 - PC용 숨기고 모바일 전용 표시 */
+  #pc-period-btns{display:none!important}
+  #pc-top-bar{display:none!important}
+  #ledger-filter-bar{display:none!important}
+  #mobile-filter-area{display:flex!important}
+  /* 카드 full-width */
+  .card{border-radius:0;border-left:none;border-right:none;margin-bottom:0.5rem;width:100%}
+  /* stat-grid 및 page-header 좌우 패딩 */
+  .stat-grid{padding:0 12px}
+  .page-header{padding:0 12px}
   /* 폼 */
   .form-grid{grid-template-columns:1fr 1fr}
   .inline-form{padding:0.75rem}
@@ -316,7 +323,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
         <select id="edit-acct-sel" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px"></select>
       </div>
       <div class="fgroup"><label>거래처</label><input type="text" id="edit-vendor" placeholder="거래처명"></div>
-      <div class="fgroup"><label>금액 *</label><input type="number" id="edit-amt" placeholder="0"></div>
+      <div class="fgroup"><label>금액 *</label><input type="text" id="edit-amt" placeholder="0" oninput="formatAmt(this)" inputmode="numeric"></div>
       <div class="fgroup" id="edit-sub-field" style="display:none">
         <label>소분류</label>
         <select id="edit-sub-acct" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px"></select>
@@ -372,18 +379,46 @@ td.amt-inc{color:var(--c-income);font-weight:600}
   <div id="page-ledger" class="page active">
     <div class="page-header"><i class="ti ti-list-details" style="color:var(--c-primary)"></i> 거래내역</div>
     <div class="stat-grid" id="ledger-stats"></div>
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+
+    <!-- 모바일 전용 필터 (카드 밖, 전체폭) -->
+    <div id="mobile-filter-area" style="display:none;flex-direction:column;gap:8px;background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 14px;margin-bottom:8px">
+      <!-- 1줄: 지난달/이번달/다음달 + 엑셀 + 내역추가 -->
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;white-space:nowrap;padding:7px 4px" onclick="setLedgerPeriod('prev')"><i class="ti ti-chevron-left"></i> 지난달</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;white-space:nowrap;padding:7px 4px" onclick="setLedgerPeriod('this')">이번달</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;white-space:nowrap;padding:7px 4px" onclick="setLedgerPeriod('next')">다음달 <i class="ti ti-chevron-right"></i></button>
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:7px 10px" onclick="exportExcel()"><i class="ti ti-download"></i></button>
+        <button class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap;padding:7px 10px" onclick="toggleForm()"><i class="ti ti-plus"></i> 내역추가</button>
+      </div>
+      <!-- 2줄: 기간 + 지출/입금 필터 -->
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="date" id="f-from-m" onchange="syncMobileFilter()" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:7px 6px;font-size:12px">
+        <span style="color:var(--text3);flex-shrink:0">~</span>
+        <input type="date" id="f-to-m" onchange="syncMobileFilter()" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:7px 6px;font-size:12px">
+        <select id="f-type-m" onchange="syncMobileFilter()" style="flex-shrink:0;border:1px solid var(--border);border-radius:7px;padding:7px 6px;font-size:12px"><option value="">전체</option><option value="지출">지출</option><option value="입금">입금</option></select>
+      </div>
+      <!-- 3줄: 계정 + 적요검색 + 초기화 -->
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="f-acct-m" onchange="syncMobileFilter()" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:7px 6px;font-size:12px"><option value="">계정 전체</option></select>
+        <input type="text" id="f-memo-m" placeholder="적요검색" oninput="syncMobileFilter()" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:7px 6px;font-size:12px">
+        <button class="btn btn-ghost btn-sm" onclick="clearFilterMobile()" style="flex-shrink:0;padding:7px 10px">초기화</button>
+      </div>
+    </div>
+
+    <div class="card" id="ledger-card">
+      <!-- PC 전용: 엑셀/내역추가 + 기간버튼 -->
+      <div id="pc-top-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+        <div id="pc-period-btns" style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('prev')"><i class="ti ti-chevron-left"></i> 지난달</button>
+          <button class="btn btn-primary btn-sm" onclick="setLedgerPeriod('this')">이번달</button>
+          <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('next')">다음달 <i class="ti ti-chevron-right"></i></button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>
           <button class="btn btn-primary btn-sm" onclick="toggleForm()"><i class="ti ti-plus"></i> 내역추가</button>
         </div>
       </div>
-      <div class="filter-bar" style="margin-bottom:8px">
-        <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('prev')"><i class="ti ti-chevron-left"></i> 지난달</button>
-        <button class="btn btn-primary btn-sm" onclick="setLedgerPeriod('this')">이번달</button>
-        <button class="btn btn-ghost btn-sm" onclick="setLedgerPeriod('next')">다음달 <i class="ti ti-chevron-right"></i></button>
-      </div>
+      <!-- PC 필터 -->
       <div class="filter-bar" id="ledger-filter-bar">
         <input type="date" id="f-from" onchange="loadEntries()">
         <span style="color:var(--text3)">~</span>
@@ -434,7 +469,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
               </div>
               <div class="fgroup">
                 <label>금액 *</label>
-                <input type="number" id="f-amt" placeholder="0">
+                <input type="text" id="f-amt" placeholder="0" oninput="formatAmt(this)" inputmode="numeric">
               </div>
               <div class="fgroup" id="sub-acct-field" style="display:none">
                 <label>소분류 *</label>
@@ -674,12 +709,8 @@ function initApp(){
   const mh=document.getElementById('mobile-header');
   if(mh&&window.innerWidth<=768) mh.style.display='flex';
   // 모바일일 때 content 상단 여백
-  if(window.innerWidth<=768){
-    const mob=document.getElementById('mobile-action-bar');
-    const pc=document.getElementById('pc-action-bar');
-    if(mob) mob.style.display='flex';
-    if(pc) pc.style.display='none';
-  }
+  // 모바일/PC 분기는 CSS에서 처리
+  
   initDates();populateFilterSelect();loadEntries();renderShortcuts();
   document.addEventListener('keydown',globalKey);
 }
@@ -696,7 +727,34 @@ function initDates(){
   ['f-from','s-from','ab-from'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=first});
   ['f-to','s-to','ab-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=end});
   document.getElementById('f-date').value=now.toISOString().split('T')[0];
+  const fm=document.getElementById('f-from-m');if(fm)fm.value=first;
+  const tm=document.getElementById('f-to-m');if(tm)tm.value=end;
 }
+function syncMobileFilter(){
+  // 모바일 필터값을 PC 필터에 동기화 후 로드
+  const fm=document.getElementById('f-from-m');
+  const tm=document.getElementById('f-to-m');
+  const typm=document.getElementById('f-type-m');
+  const acctm=document.getElementById('f-acct-m');
+  const memom=document.getElementById('f-memo-m');
+  if(fm) document.getElementById('f-from').value=fm.value;
+  if(tm) document.getElementById('f-to').value=tm.value;
+  if(typm) document.getElementById('f-type').value=typm.value;
+  if(acctm) document.getElementById('f-acct').value=acctm.value;
+  if(memom) document.getElementById('f-memo').value=memom.value;
+  loadEntries();
+}
+function clearFilterMobile(){
+  ['f-type-m','f-acct-m'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const mm=document.getElementById('f-memo-m');if(mm)mm.value='';
+  clearFilter();
+  // 모바일 날짜도 동기화
+  const now=new Date(),y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
+  const last=new Date(y,now.getMonth()+1,0).getDate().toString().padStart(2,'0');
+  const fm=document.getElementById('f-from-m');if(fm)fm.value=`${y}-${m}-01`;
+  const tm=document.getElementById('f-to-m');if(tm)tm.value=`${y}-${m}-${last}`;
+}
+
 function toggleMobileFilter(){
   const fb=document.getElementById('ledger-filter-bar');
   if(!fb)return;
@@ -715,6 +773,8 @@ function changeBranch(b){
 function populateFilterSelect(){
   const opts=ACCOUNTS.map(a=>`<option value="${a.code}">${a.code} ${a.name}</option>`).join('');
   document.getElementById('f-acct').innerHTML='<option value="">계정 전체</option>'+opts;
+  const ma=document.getElementById('f-acct-m');
+  if(ma) ma.innerHTML='<option value="">계정 전체</option>'+opts;
 }
 function setKind(kind){
   document.getElementById('f-kind').value=kind;
@@ -752,6 +812,17 @@ function selectKind(kind){
 }
 function showKindDrop(){document.getElementById('kind-dropdown').style.display='block'}
 function hideKindDrop(){document.getElementById('kind-dropdown').style.display='none'}
+function formatAmt(el){
+  const raw=el.value.replace(/[^0-9]/g,'');
+  el.value=raw?parseInt(raw).toLocaleString('ko-KR'):'';
+  el.dataset.raw=raw;
+}
+function getAmtVal(id){
+  const el=document.getElementById(id);
+  if(!el) return 0;
+  return parseInt((el.dataset.raw||el.value.replace(/[^0-9]/g,''))||0);
+}
+
 function updateSubFields(){
   const code=document.getElementById('f-acct-code').value;
   const kind=document.getElementById('f-kind').value;
@@ -1039,6 +1110,7 @@ function toggleForm(){
     clearReceipt();
     document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('f-amt').value='';
+    document.getElementById('f-amt').dataset.raw='';
     document.getElementById('f-qty').value='1';
     document.getElementById('f-memo-in').value='';
     document.getElementById('f-vendor').value='';
@@ -1160,7 +1232,7 @@ async function saveEntry(){
   const code=document.getElementById('f-acct-code').value;
   const acct=ACCOUNTS.find(a=>a.code===code)?.name||'';
   const vendor=document.getElementById('f-vendor').value.trim();
-  const amt=parseInt(document.getElementById('f-amt').value)||0;
+  const amt=getAmtVal('f-amt');
   const memo=document.getElementById('f-memo-in').value.trim();
   const qty=parseInt(document.getElementById('f-qty').value)||1;
   if(!date||!code){toast('날짜와 계정과목은 필수입니다');return}
@@ -1198,7 +1270,8 @@ function openEdit(id){
   document.getElementById('edit-date').value=e.date;
   document.getElementById('edit-kind').value=e.kind;
   document.getElementById('edit-vendor').value=e.vendor||'';
-  document.getElementById('edit-amt').value=e.amt;
+  document.getElementById('edit-amt').value=e.amt?e.amt.toLocaleString('ko-KR'):'';
+  document.getElementById('edit-amt').dataset.raw=String(e.amt||0);
   document.getElementById('edit-memo').value=e.memo||'';
   document.getElementById('edit-qty').value=e.qty||1;
   document.getElementById('edit-qty-field').style.display=e.code==='830'?'flex':'none';
@@ -1232,7 +1305,7 @@ async function saveEdit(){
   const code=sel.value;
   const acct=ACCOUNTS.find(a=>a.code===code)?.name||'';
   const vendor=document.getElementById('edit-vendor').value.trim();
-  const amt=parseInt(document.getElementById('edit-amt').value)||0;
+  const amt=getAmtVal('edit-amt');
   const memo=document.getElementById('edit-memo').value.trim();
   const qty=parseInt(document.getElementById('edit-qty').value)||1;
   if(!date||!code){toast('날짜와 계정과목은 필수입니다');return}
@@ -1274,6 +1347,8 @@ function setLedgerPeriod(dir){
   const last=new Date(y,m+1,0).getDate().toString().padStart(2,'0');
   fromEl.value=`${y}-${mm}-01`;
   toEl.value=`${y}-${mm}-${last}`;
+  const fm=document.getElementById('f-from-m');if(fm)fm.value=`${y}-${mm}-01`;
+  const tm=document.getElementById('f-to-m');if(tm)tm.value=`${y}-${mm}-${last}`;
   loadEntries();
 }
 
@@ -1392,7 +1467,7 @@ async function loadStats(){
       const label=w>=8?`<span style="font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${w*0.9}px;display:inline-block;vertical-align:middle;padding:0 4px">${k.replace('·출력용품','').replace('·생활용품','').replace('소모품','')} ${w}%</span>`:'';
       return `<div style="width:${w}%;background:${subColors[k]||'#ccc'};height:100%;display:inline-flex;align-items:center;justify-content:center;overflow:hidden" title="${k}: ${v.toLocaleString()}원 (${w}%)">${label}</div>`;
     }).join('');
-    const legend=subEntries.map(([k])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:${subColors[k]||'#ccc'};display:inline-block"></span>${k}</span>`).join('');
+    const legend=subEntries.map(([k,v])=>{const p=Math.round(v/sub830Total*100);const shortName=k.replace('·출력용품','').replace('·생활용품','').replace('소모품','');return`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;margin-bottom:4px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:${subColors[k]||'#ccc'};display:inline-block;flex-shrink:0"></span>${shortName} <b style="color:${subColors[k]||'#888'}">${p}%</b></span>`}).join('');
     // 소분류 카드
     const subCards=subEntries.map(([k,v])=>{
       const pct=Math.round(v/sub830Total*100);
