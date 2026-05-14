@@ -542,13 +542,16 @@ td.amt-inc{color:var(--c-income);font-weight:600}
         </div>
       </div>
 
-      <div class="tbl-wrap">
+      <!-- PC 테이블 -->
+      <div class="tbl-wrap" id="ledger-tbl-wrap">
         <table>
           <thead><tr><th>날짜</th><th>구분</th><th>계정과목</th><th>소분류</th><th>거래처</th><th>적요</th><th>수량</th><th style="text-align:right">금액</th><th>영수증</th><th></th></tr></thead>
           <tbody id="ledger-body"></tbody>
         </table>
-        <div class="empty" id="ledger-empty" style="display:none"><i class="ti ti-inbox"></i>내역이 없습니다</div>
       </div>
+      <!-- 모바일 카드 리스트 -->
+      <div id="ledger-mobile-list" style="display:none"></div>
+      <div class="empty" id="ledger-empty" style="display:none"><i class="ti ti-inbox"></i>내역이 없습니다</div>
     </div>
   </div>
 
@@ -1161,40 +1164,53 @@ function renderLedger(data){
     <div class="stat"><div class="stat-label">순액</div><div class="stat-val" style="color:${totalInc-totalExp>=0?'var(--c-income)':'var(--c-expense)'}">${(totalInc-totalExp>=0?'+':'')}${(totalInc-totalExp).toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">현재시재 <span style="font-size:9px;color:var(--text3)">(전체)</span></div><div class="stat-val" style="color:${(window._sijaeBalance||0)>=0?'var(--c-income)':'var(--c-expense)'}">${((window._sijaeBalance||0)>=0?'+':'')}${(window._sijaeBalance||0).toLocaleString()}원</div></div>
     <div class="stat"><div class="stat-label">건수</div><div class="stat-val">${data.length}건</div></div>`;
-  const tbody=document.getElementById('ledger-body');
-  tbody.innerHTML='';
   document.getElementById('ledger-empty').style.display=data.length?'none':'block';
   const isMobile=window.innerWidth<=768;
-  data.forEach(e=>{
-    const isPdf=e.receipt_url&&(e.receipt_url.endsWith('.pdf')||e.receipt_url.includes('.pdf?'));
-    const receiptCell=e.receipt_url
-      ?(isPdf?`<span style="font-size:11px;color:var(--c-primary);cursor:pointer" onclick="showReceiptRow(${e.id})"><i class="ti ti-file-type-pdf"></i> PDF</span>`
-        :`<img src="${e.receipt_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)" onclick="showReceiptRow(${e.id})" alt="영수증">`)
-      :'';
-    const tr=document.createElement('tr');
-    if(isMobile){
-      tr.innerHTML=`
-        <td style="display:block;padding:0;border:none">
-          <div style="padding:12px 14px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:12px;color:var(--text3)">${e.date}</span>
-              <span style="font-size:16px;font-weight:800;color:${e.kind==='지출'?'var(--c-expense)':'var(--c-income)'}">${e.kind==='지출'?'-':'+'}${e.amt.toLocaleString()}원</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-              <span class="tag ${e.kind==='지출'?'tag-exp':'tag-inc'}">${e.kind}</span>
-              <span class="tag tag-acct">${e.code} ${e.acct}</span>
-              ${e.sub_acct?`<span class="tag" style="background:#F0F4FA;color:var(--text2)">${e.sub_acct}</span>`:''}
-            </div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.memo||'(적요 없음)'}</div>
-            <div style="font-size:11px;color:var(--text3)">${[e.vendor,e.qty?'수량 '+e.qty:null].filter(Boolean).join(' · ')||''}</div>
+  const tblWrap=document.getElementById('ledger-tbl-wrap');
+  const mobileList=document.getElementById('ledger-mobile-list');
+
+  if(isMobile){
+    tblWrap.style.display='none';
+    mobileList.style.display='block';
+    mobileList.innerHTML=data.map(e=>{
+      const isPdf=e.receipt_url&&(e.receipt_url.endsWith('.pdf')||e.receipt_url.includes('.pdf?'));
+      const receiptCell=e.receipt_url
+        ?(isPdf?`<span style="font-size:11px;color:var(--c-primary);cursor:pointer" onclick="showReceiptRow(${e.id})"><i class="ti ti-file-type-pdf"></i> PDF</span>`
+          :`<img src="${e.receipt_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)" onclick="showReceiptRow(${e.id})" alt="영수증">`)
+        :'';
+      return `<div style="background:#fff;border-radius:12px;margin:0 12px 10px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden">
+        <div style="padding:12px 14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--text3)">${e.date}</span>
+            <span style="font-size:16px;font-weight:800;color:${e.kind==='지출'?'var(--c-expense)':'var(--c-income)'}">${e.kind==='지출'?'-':'+'}${e.amt.toLocaleString()}원</span>
           </div>
-          <div style="display:flex;border-top:1px solid var(--border);padding:6px 10px;gap:6px;align-items:center">
-            <span style="flex:1;font-size:11px">${receiptCell}</span>
-            <button class="btn btn-ghost btn-sm" onclick="openEdit(${e.id})" style="padding:5px 14px;font-size:12px"><i class="ti ti-edit"></i> 수정</button>
-            <button class="btn btn-ghost btn-sm" onclick="deleteEntry(${e.id})" style="padding:5px 14px;font-size:12px;color:var(--c-accent)"><i class="ti ti-trash"></i> 삭제</button>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+            <span class="tag ${e.kind==='지출'?'tag-exp':'tag-inc'}">${e.kind}</span>
+            <span class="tag tag-acct">${e.code} ${e.acct}</span>
+            ${e.sub_acct?`<span class="tag" style="background:#F0F4FA;color:var(--text2)">${e.sub_acct}</span>`:''}
           </div>
-        </td>`;
-    } else {
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.memo||'(적요 없음)'}</div>
+          <div style="font-size:11px;color:var(--text3)">${[e.vendor,e.qty?'수량 '+e.qty:null].filter(Boolean).join(' · ')||''}</div>
+        </div>
+        <div style="display:flex;border-top:1px solid var(--border);padding:6px 10px;gap:6px;align-items:center">
+          <span style="flex:1;font-size:11px">${receiptCell}</span>
+          <button class="btn btn-ghost btn-sm" onclick="openEdit(${e.id})" style="padding:5px 14px;font-size:12px"><i class="ti ti-edit"></i> 수정</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteEntry(${e.id})" style="padding:5px 14px;font-size:12px;color:var(--c-accent)"><i class="ti ti-trash"></i> 삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    tblWrap.style.display='';
+    mobileList.style.display='none';
+    const tbody=document.getElementById('ledger-body');
+    tbody.innerHTML='';
+    data.forEach(e=>{
+      const isPdf=e.receipt_url&&(e.receipt_url.endsWith('.pdf')||e.receipt_url.includes('.pdf?'));
+      const receiptCell=e.receipt_url
+        ?(isPdf?`<span style="font-size:11px;color:var(--c-primary);cursor:pointer" onclick="showReceiptRow(${e.id})"><i class="ti ti-file-type-pdf"></i> PDF</span>`
+          :`<img src="${e.receipt_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)" onclick="showReceiptRow(${e.id})" alt="영수증">`)
+        :'';
+      const tr=document.createElement('tr');
       tr.innerHTML=`
         <td data-label="날짜">${e.date}</td>
         <td data-label="구분"><span class="tag ${e.kind==='지출'?'tag-exp':'tag-inc'}">${e.kind}</span></td>
@@ -1209,9 +1225,9 @@ function renderLedger(data){
           <button class="btn btn-ghost btn-sm" onclick="openEdit(${e.id})" style="padding:4px 8px;font-size:11px;margin-right:3px"><i class="ti ti-edit"></i></button>
           <button class="btn btn-ghost btn-sm" onclick="deleteEntry(${e.id})" style="padding:4px 8px;font-size:11px;color:var(--c-accent)"><i class="ti ti-trash"></i></button>
         </td>`;
-    }
-    tbody.appendChild(tr);
-  });
+      tbody.appendChild(tr);
+    });
+  }
 }
 function showReceiptRow(id){
   const e=allEntries.find(x=>x.id==id);if(!e||!e.receipt_url)return;
