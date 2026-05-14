@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1B5EAB">
-<title>JLS 운영비 1.0 관리</title>
+<title>JLS 운영비 관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -264,7 +264,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0 관리</div>
+    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리</div>
     <div class="login-sub">계정을 입력하여 로그인하세요</div>
     <div class="login-field"><label>아이디</label><input id="lid" type="text" placeholder="아이디"/></div>
     <div class="login-field"><label>비밀번호</label><input id="lpw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -350,7 +350,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -2421,29 +2421,58 @@ async function processBtxUpload(){
     try{
       const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      // 헤더 행 자동 탐색: '거래일' 또는 '일자' 포함한 행 찾기
+      const range=XLSX.utils.decode_range(ws['!ref']||'A1:Z100');
+      let headerRow=0;
+      for(let r=range.s.r;r<=Math.min(range.s.r+15,range.e.r);r++){
+        for(let c=range.s.c;c<=range.e.c;c++){
+          const cell=ws[XLSX.utils.encode_cell({r,c})];
+          const val=cell?String(cell.v||''):'';
+          if(val.includes('거래일')||val.includes('일자')||val==='날짜'){
+            headerRow=r;break;
+          }
+        }
+        if(headerRow>0) break;
+      }
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:'',range:headerRow});
       document.getElementById('upload-prog-txt').textContent=`${rows.length}행 파싱 중...`;
       document.getElementById('upload-prog-bar').style.width='50%';
 
-      // 컬럼 자동 감지 (국민은행 형식 기준)
       const parsed=rows.map(r=>{
         const keys=Object.keys(r);
-        const findCol=(...terms)=>keys.find(k=>terms.some(t=>k.includes(t)));
-        const dateKey=findCol('거래일','일자','날짜','date');
+        const findCol=(...terms)=>keys.find(k=>terms.some(t=>String(k).replace(/\s/g,'').includes(t)));
+        const dateKey=findCol('거래일시','거래일','일자','날짜','date','Date');
         const timeKey=findCol('시간','time');
-        const descKey=findCol('적요','내용','description','거래내용','내통장표시');
-        const outKey=findCol('출금','withdrawal','지급');
-        const inKey=findCol('입금','deposit','수취');
-        const balKey=findCol('잔액','balance');
-        const memoKey=findCol('메모','비고','의뢰인','수취인');
+        const descKey=findCol('적요','내용','거래내용','내통장표시','description');
+        const outKey=findCol('출금금액','출금액','출금','withdrawal','지급금액','지급액');
+        const inKey=findCol('입금금액','입금액','입금','deposit','수취금액','수취액');
+        const balKey=findCol('잔액','balance','잔고');
+        const memoKey=findCol('의뢰인','수취인','메모','비고');
+        if(!dateKey) return null;
         const rawDate=r[dateKey]||'';
-        let txDate='';
-        if(rawDate instanceof Date) txDate=rawDate.toISOString().slice(0,10);
-        else if(typeof rawDate==='string') txDate=rawDate.replace(/\./g,'-').replace(/(\d{4})-(\d{1,2})-(\d{1,2}).*/,'$1-$2-$3').replace(/-(\d)-/g,'-0$1-').replace(/-(\d)$/,'-0$1');
+        let txDate='',txTime='';
+        if(rawDate instanceof Date){
+          txDate=rawDate.toISOString().slice(0,10);
+          txTime=rawDate.toTimeString().slice(0,5);
+        } else if(typeof rawDate==='string'){
+          // "2026.01.05 14:32:00" 또는 "2026-01-05" 형식 처리
+          const dateStr=String(rawDate).trim();
+          const dateMatch=dateStr.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+          const timeMatch=dateStr.match(/(\d{2}:\d{2})/);
+          if(dateMatch) txDate=`${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}`;
+          if(timeMatch) txTime=timeMatch[1];
+        } else if(typeof rawDate==='number'){
+          // 엑셀 시리얼 날짜
+          const d=XLSX.SSF.parse_date_code(rawDate);
+          if(d) txDate=`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+        }
         const withdrawal=parseInt(String(r[outKey]||'').replace(/[^0-9]/g,''))||0;
         const deposit=parseInt(String(r[inKey]||'').replace(/[^0-9]/g,''))||0;
-        return {account_id:accountId,branch:curBranch,tx_date:txDate,tx_time:r[timeKey]||null,description:String(r[descKey]||'').trim(),withdrawal,deposit,balance:parseInt(String(r[balKey]||'').replace(/[^0-9]/g,''))||null,memo:r[memoKey]?String(r[memoKey]).trim():null,original_filename:file.name,status:'미처리'};
-      }).filter(r=>r.tx_date&&r.tx_date.length===10&&(r.withdrawal>0||r.deposit>0));
+        const balance=parseInt(String(r[balKey]||'').replace(/[^0-9]/g,''))||null;
+        const description=String(r[descKey]||'').trim();
+        const memo=memoKey?String(r[memoKey]||'').trim():null;
+        return {account_id:accountId,branch:curBranch,tx_date:txDate,tx_time:txTime||null,description,withdrawal,deposit,balance,memo:memo||null,original_filename:file.name,status:'미처리'};
+      }).filter(r=>r&&r.tx_date&&r.tx_date.length===10&&(r.withdrawal>0||r.deposit>0));
 
       if(!parsed.length){document.getElementById('upload-err').textContent='유효한 거래 데이터를 찾지 못했습니다. 컬럼명을 확인해주세요.';document.getElementById('upload-progress').style.display='none';return;}
 
