@@ -439,7 +439,6 @@ td.amt-inc{color:var(--c-income);font-weight:600}
           <button class="btn btn-ghost btn-sm" id="btn-delete-sel" onclick="deleteSelected()" style="display:none;color:var(--c-accent)"><i class="ti ti-trash"></i> 삭제</button>
           <button class="btn btn-ghost btn-sm" onclick="openBankImportModal()"><i class="ti ti-building-bank"></i> 계좌불러오기</button>
           <button class="btn btn-ghost btn-sm" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>
-          <button class="btn btn-primary btn-sm" onclick="addGridRow()"><i class="ti ti-plus"></i> 행추가</button>
         </div>
       </div>
       <!-- 그리드 -->
@@ -946,16 +945,17 @@ function initDates(){
 }
 
 function getGridPeriod(){
-  const y=document.getElementById('grid-year')?.value||new Date().getFullYear();
+  const y=parseInt(document.getElementById('grid-year')?.value||new Date().getFullYear());
   const m=document.getElementById('grid-month')?.value||'00';
   const d=document.getElementById('grid-day')?.value||'';
-  if(m==='00') return {from:`${y}-01-01`,to:`${y}-12-31`};
-  const last=new Date(parseInt(y),parseInt(m),0).getDate().toString().padStart(2,'0');
+  const mm=m.padStart(2,'0');
+  if(mm==='00') return {from:`${y}-01-01`,to:`${y}-12-31`};
+  const last=new Date(y,parseInt(mm),0).getDate().toString().padStart(2,'0');
   if(d&&parseInt(d)>=1&&parseInt(d)<=31){
     const dd=String(parseInt(d)).padStart(2,'0');
-    return {from:`${y}-${m}-${dd}`,to:`${y}-${m}-${dd}`};
+    return {from:`${y}-${mm}-${dd}`,to:`${y}-${mm}-${dd}`};
   }
-  return {from:`${y}-${m}-01`,to:`${y}-${m}-${last}`};
+  return {from:`${y}-${mm}-01`,to:`${y}-${mm}-${last}`};
 }
 
 async function loadEntries(){
@@ -995,14 +995,35 @@ const GRID_INPUT_FOCUS='border-color:var(--c-primary);background:#fff;';
 function renderGrid(data){
   const empty=document.getElementById('ledger-empty');
   const tbody=document.getElementById('ledger-body');
-  if(!data.length){empty.style.display='block';tbody.innerHTML='';updateBundleInfo([]);return;}
   empty.style.display='none';
 
   const bundleColors=['#EEF4FF','#FFF8E1','#F0FDF4','#FEF0EC','#F5F0FF'];
   const bundleGroups={};
-  data.forEach(e=>{if(e.bundle_id){if(!bundleGroups[e.bundle_id]==null) bundleGroups[e.bundle_id]=Object.keys(bundleGroups).length;}});
+  data.forEach(e=>{if(e.bundle_id){if(bundleGroups[e.bundle_id]==null) bundleGroups[e.bundle_id]=Object.keys(bundleGroups).length;}});
 
   tbody.innerHTML='';
+
+  // ── 항상 보이는 빈 입력 행 ──
+  const today=new Date().toISOString().split('T')[0];
+  const acctOptsTr=ACCOUNTS.map(a=>`<option value="${a.code}">${a.code} ${a.name}</option>`).join('');
+  const emptyTr=document.createElement('tr');
+  emptyTr.id='grid-empty-row';
+  emptyTr.style.cssText='border-bottom:2px solid var(--c-primary);background:#FFFDE7';
+  emptyTr.innerHTML=`
+    <td style="padding:4px 6px;text-align:center"><span style="font-size:11px;color:var(--c-primary);font-weight:700">NEW</span></td>
+    <td style="padding:0;width:6px"></td>
+    <td style="padding:3px 4px"><input type="date" id="nr-date" value="${today}" class="grid-cell" style="min-width:100px"></td>
+    <td style="padding:3px 2px"><select id="nr-kind" class="grid-cell"><option value="지출">지출</option><option value="입금">입금</option></select></td>
+    <td style="padding:3px 2px"><select id="nr-pm" class="grid-cell"><option value="">-</option><option value="계좌이체">계좌이체</option><option value="체크카드">체크카드</option><option value="신용카드">신용카드</option><option value="현금">현금</option><option value="기타">기타</option></select></td>
+    <td style="padding:3px 2px"><select id="nr-acct" class="grid-cell" onchange="updateNrSub()"><option value="">계정과목 선택</option>${acctOptsTr}</select></td>
+    <td style="padding:3px 2px" id="nr-sub-cell"><span style="font-size:11px;color:var(--text3)">-</span></td>
+    <td style="padding:3px 2px"><input type="text" id="nr-vendor" placeholder="거래처" class="grid-cell"></td>
+    <td style="padding:3px 4px"><input type="text" id="nr-amt" placeholder="0" oninput="formatAmt(this)" inputmode="numeric" class="grid-cell" style="text-align:right;min-width:70px"></td>
+    <td style="padding:3px 2px;text-align:center"><input type="number" id="nr-qty" value="1" min="1" class="grid-cell" style="text-align:center;width:38px"></td>
+    <td style="padding:3px 2px"><input type="text" id="nr-memo" placeholder="적요 입력 후 Enter" class="grid-cell" onkeydown="if(event.key==='Enter')saveNewRow()"></td>
+    <td style="padding:3px 4px;text-align:center"><span style="font-size:11px;color:var(--text3)">-</span></td>
+    <td style="padding:3px 4px;text-align:center"><button onclick="saveNewRow()" style="background:var(--c-primary);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;padding:4px 10px;white-space:nowrap">저장</button></td>`;
+  tbody.appendChild(emptyTr);
   data.forEach((e,idx)=>{
     const bundleIdx=e.bundle_id?bundleGroups[e.bundle_id]:-1;
     const bc=bundleIdx>=0?bundleColors[bundleIdx%bundleColors.length]:'';
@@ -1222,6 +1243,18 @@ function addGridRow(){
   document.getElementById('ledger-empty').style.display='none';
 }
 
+function updateNrSub(){
+  const code=document.getElementById('nr-acct')?.value;
+  const subCell=document.getElementById('nr-sub-cell');
+  if(!subCell) return;
+  if(code==='830'){
+    const subOpts=SUB_ACCOUNTS['830'].map(s=>`<option value="${s.code}">${s.name}</option>`).join('');
+    subCell.innerHTML=`<select id="nr-sub" class="grid-cell"><option value="">-</option>${subOpts}</select>`;
+  } else {
+    subCell.innerHTML=`<span style="font-size:11px;color:var(--text3)">-</span>`;
+  }
+}
+
 async function saveNewRow(){
   const date=document.getElementById('nr-date')?.value;
   const kind=document.getElementById('nr-kind')?.value;
@@ -1240,12 +1273,6 @@ async function saveNewRow(){
   if(error){toast('저장 오류: '+error.message);return;}
   toast('저장되었습니다');
   loadEntries();
-}
-
-function cancelNewRow(){
-  const row=document.querySelector('tr[id^="grid-row-new_"]');
-  if(row) row.remove();
-  if(!allEntries.length) document.getElementById('ledger-empty').style.display='block';
 }
 
 /* ===== 체크박스 & 묶음 ===== */
@@ -2098,7 +2125,7 @@ async function loadStats(){
     const diffColor=diff>0?'var(--c-expense)':diff<0?'var(--c-income)':'var(--text3)';
     const diffStr=diff===0?'변동없음':`${diff>0?'+':''}${diff.toLocaleString()}원`;
     const arrow=diff>0?'↑':diff<0?'↓':'─';
-    return `<div style="display:flex;align-items:center;padding:8px 12px;border-radius:8px;background:#fff;border:1px solid var(--border);margin-bottom:6px">
+    return `<div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${name}</span>
       <span style="font-size:13px;font-weight:700;color:${diffColor}">${arrow} ${diffStr}</span>
     </div>`;
