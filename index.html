@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1B5EAB">
-<title>JLS 운영비 관리</title>
+<title>JLS 운영비 1.0 관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -264,7 +264,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 관리</div>
+    <div class="login-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0 관리</div>
     <div class="login-sub">계정을 입력하여 로그인하세요</div>
     <div class="login-field"><label>아이디</label><input id="lid" type="text" placeholder="아이디"/></div>
     <div class="login-field"><label>비밀번호</label><input id="lpw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -350,7 +350,7 @@ td.amt-inc{color:var(--c-income);font-weight:600}
 <div id="layout" style="display:none">
 <aside id="sidebar">
   <div id="sidebar-top">
-    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비</div>
+    <div id="sidebar-logo"><i class="ti ti-building-school" style="color:var(--c-accent)"></i> JLS 운영비 1.0</div>
     <select id="branch-sel" onchange="changeBranch(this.value)"></select>
     <div id="sidebar-user">
       <span id="role-badge-side"></span>
@@ -1942,15 +1942,23 @@ function showPage(name,el){
   document.querySelectorAll('.bottom-tab').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   el.classList.add('active');
-  // 같은 page의 bottom-tab도 active
   document.querySelectorAll(`.bottom-tab[data-page="${name}"]`).forEach(t=>t.classList.add('active'));
-  // 모바일 헤더 타이틀
-  const titles={ledger:'거래내역',stats:'통계분석',allbranch:'전분원현황',supplies:'소모품관리'};
+  const titles={ledger:'거래내역',stats:'통계분석',allbranch:'전분원현황',supplies:'소모품관리',banktx:'계좌내역 처리',settings:'설정'};
   const mobileTitle=document.getElementById('mobile-title');
   if(mobileTitle) mobileTitle.textContent=titles[name]||'';
   if(name==='stats') loadStats();
   if(name==='allbranch') loadAllBranch();
   if(name==='supplies') loadSupplies();
+  if(name==='settings') loadAccountList();
+  if(name==='banktx'){
+    loadBankTxAccounts().then(()=>{
+      populateAccountSelects();
+      const now=new Date();
+      const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
+      document.getElementById('btx-from').value=`${y}-${m}-01`;
+      document.getElementById('btx-to').value=`${y}-${m}-${String(new Date(y,now.getMonth()+1,0).getDate()).padStart(2,'0')}`;
+    });
+  }
   closeSidebar();
 }
 function closeSidebar(){
@@ -2523,21 +2531,7 @@ async function saveSplit(){
 }
 
 // showPage에 settings/banktx 연결
-const _origShowPage=showPage;
-function showPage(name,el){
-  _origShowPage(name,el);
-  if(name==='settings') loadAccountList();
-  if(name==='banktx'){
-    loadBankTxAccounts().then(()=>{
-      populateAccountSelects();
-      // 기본 기간: 이번달
-      const now=new Date();
-      const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
-      document.getElementById('btx-from').value=`${y}-${m}-01`;
-      document.getElementById('btx-to').value=`${y}-${m}-${String(new Date(y,now.getMonth()+1,0).getDate()).padStart(2,'0')}`;
-    });
-  }
-}
+
 </script>
 </body>
 </html>
